@@ -69,3 +69,32 @@ function render() {
 }
 
 render();
+
+const potInput = document.getElementById('pot');
+const betInput = document.getElementById('bet');
+const oddsText = document.getElementById('odds');
+
+function getPot() { return Number(potInput.value) || 0; }
+function getBet() { return Number(betInput.value) || 0; }
+
+// break even formula
+function requiredEquity(pot, bet) {
+    return bet / (pot + 2 * bet);
+}
+
+function showOdds() {
+    const pot = getPot();
+    const bet = getBet();
+    if(bet > 0) {
+        const percent = (requiredEquity(pot, bet) * 100).toFixed(1);
+        oddsText.textContent = 'You must win at least ' + percent + '% of the time to break even.';
+    } else {
+        oddsText.textContent = 'No bet to call. Checking is free.';
+    }
+    onChange();
+}
+
+potInput.addEventListener('input', showOdds);
+betInput.addEventListener('input', showOdds);
+showOdds();
+

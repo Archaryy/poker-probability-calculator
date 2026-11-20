@@ -60,3 +60,13 @@ h2 {
 }
 .pick.red { color: #fb7185; }
 .pick.used { opacity: 0.3; }
+label { color: #94a3b8; }
+input { width: 90px; }
+input, select {
+  padding: 8px;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  background: #0b1325;
+  color: #f1f5f9;
+  font-size: 1rem;
+}
