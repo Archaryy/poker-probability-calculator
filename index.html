@@ -92,22 +92,54 @@
         <p id="odds"></p>
       </section>
     </div>
-    <aside class="result" id="decision">
-      <p class="lbl">Opponents</p>
-      <div class="row">
-        <select id="opps">
-          <option value="1">1 opponent</option>
-          <option value="2">2 opponents</option>
-          <option value="3">3 opponents</option>
-          <option value="5">5 opponents</option>
-        </select>
-      </div>
+      <aside class="result" id="decision">
+        <div class="verdict" id="verdict-box" aria-live="polite">
+          <span class="lbl">4 &middot; Your decision</span>
+          <div class="verdict-row">
+            <div>
+              <div class="v-tag" id="v-tag">Pick your hand</div>
+              <div class="v-sub" id="v-sub">Choose two hole cards to see the odds.</div>
+            </div>
+            <div class="v-ev"><b id="v-ev">&mdash;</b><span>Expected value</span></div>
+          </div>
+        </div>
 
-      <div id="verdict" class="verdict">
-        <div id="verdict-title" class="title"></div>
-        <div id="verdict-detail" class="detail"></div>
-      </div>
-    </aside>
+        <div class="gauge-card" id="gauge-card">
+          <div class="gauge-wrap">
+            <svg viewBox="0 0 240 134" role="img" aria-label="Win chance gauge">
+              <path id="z-lose" class="z-lose" fill="none" stroke-width="18" d=""></path>
+              <path id="z-win" class="z-win" fill="none" stroke-width="18" d=""></path>
+              <line id="tick" class="tick" x1="0" y1="0" x2="0" y2="0"></line>
+              <text class="scale-t" x="30" y="132" text-anchor="middle">0%</text>
+              <text class="scale-t" x="210" y="132" text-anchor="middle">100%</text>
+              <g id="needle" style="transform: rotate(-90deg)">
+                <line class="needle-line" x1="120" y1="118" x2="120" y2="44"></line>
+              </g>
+              <circle class="hub" cx="120" cy="118" r="9"></circle>
+            </svg>
+          </div>
+          <div class="eq-read">
+            <div><div class="eq-sub">Your win chance</div><div class="eq-big" id="eq-big">&mdash;</div></div>
+            <div style="text-align:right"><div class="eq-sub">Chance you need</div><div class="eq-big" id="need-big" style="color:var(--muted)">&mdash;</div></div>
+          </div>
+          <div class="legend">
+            <span><i style="background:var(--ro);opacity:.55"></i>Fold zone</span>
+            <span><i style="background:var(--em);opacity:.55"></i>Call zone</span>
+            <span><i style="background:var(--fg)"></i>Break-even mark</span>
+          </div>
+        </div>
+
+        <div class="opp-set" id="opp-set">
+          <div class="opp-row"><span class="lbl">Opponents</span>
+            <div class="seg" role="group" aria-label="Number of opponents" id="seg-opps">
+              <button type="button" data-v="1" aria-pressed="true">1</button>
+              <button type="button" data-v="2" aria-pressed="false">2</button>
+              <button type="button" data-v="3" aria-pressed="false">3</button>
+              <button type="button" data-v="5" aria-pressed="false">5</button>
+            </div>
+          </div>
+        </div>
+      </aside>
   </div>
 </main>
 <script src="script.js"></script>

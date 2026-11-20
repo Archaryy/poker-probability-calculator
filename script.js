@@ -287,45 +287,132 @@ function card(text) {
   return '23456789TJQKA'.indexOf(text[0]) * 4 + 'shdc'.indexOf(text[1]);
 }
 
-const oppsSelect = document.getElementById('opps');
-const verdictBox = document.getElementById('verdict');
-const verdictTitle = document.getElementById('verdict-title');
-const verdictDetail = document.getElementById('verdict-detail');
+const settings = { opps: 1 };      // how many opponents
+const RUNS = 6000;                 // how many deals each simulation plays out
+const updaters = [];               // each function in here draws one part of the screen
+const app = document.getElementById('app');
 
-function showVerdict(style, title, detail) {
-    verdictBox.className = 'verdict ' + style;
-    verdictTitle.textContent = title;
-    verdictDetail.textContent = detail;
+// ---- number formatting ----
+function money(x, decimals = 0) {
+  return '$' + Math.abs(x).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+function signed(x) { return (x >= 0 ? '+' : '\u2212') + money(x, 2); }
+function pct(p) { return (p * 100).toFixed(1) + '%'; }
+
+// ---- simulation, with a memory so we only re-run it when the cards change ----
+let lastKey = '';
+let lastResult = null;
+function runSimulation(hero, board) {
+  const key = [hero.join(), board.slice().sort((a, b) => a - b).join(), settings.opps].join('|');
+  if (key !== lastKey) {
+    lastResult = simulate(hero, board, settings.opps, RUNS);
+    lastKey = key;
+  }
+  return lastResult;
 }
 
+// ---- gather everything the screen needs into one object, then let each updater draw ----
 function calculate() {
-    const hero = slots.slice(0, 2).filter(c => c !== null);
-    const board = slots.slice(2).filter(c => c !== null);
+  const hero = slots.slice(0, 2).filter(c => c !== null);
+  const board = slots.slice(2).filter(c => c !== null);
+  const pot = getPot();
+  const bet = getBet();
+  const view = { hero, board, pot, bet, needed: bet > 0 ? requiredEquity(pot, bet) : 0, result: null, message: '' };
 
-    if (hero.length < 2) {
-        showVerdict('', 'Pick your 2 cards', 'Tap two cards in the deck.');
-        return;
-    }
-    if (board.length === 1 || board.length === 2){
-        showVerdict('', 'Finish the flop.', 'The flop is 3 cards. Add ' + (3 - board.length) + ' more, or clear the board.');
-        return;
-    }
-    const pot = getPot();
-    const bet = getBet();
-    const result = simulate(hero, board, Number(oppsSelect.value), 6000);
-    const needed = requiredEquity(pot, bet);
-    const ev = result.equity * (pot + 2 * bet) - bet;
-    const equityText = 'You win ' + (result.equity * 100).toFixed(1) + '% of the time.';
+  if (hero.length < 2) {
+    view.message = 'Choose two hole cards to see the odds.';
+  } else if (board.length === 1 || board.length === 2) {
+    view.message = 'The flop needs three cards. Add ' + (3 - board.length) + ' more, or clear the board.';
+  } else {
+    view.result = runSimulation(hero, board);
+  }
+  updaters.forEach(draw => draw(view));
+}
+onChange = calculate;   // render() calls this every time something changes
 
-    if (bet === 0) {
-        showVerdict('free', 'FREE CHECK', equityText + 'Nothing to call.');
-    } else if (result.equity >= needed) {
-        showVerdict('good', '+EV CALL', equityText + ' You need ' + (needed * 100).toFixed(1) + '%. Average profit: $' + ev.toFixed(2) + '.');
+// ---- updater 1: the big verdict ----
+const vTag = document.getElementById('v-tag');
+const vSub = document.getElementById('v-sub');
+const vEv = document.getElementById('v-ev');
+
+function drawVerdict(view) {
+  let tone = 'pending';
+  let tag = 'Pick your hand';
+  let sub = view.message;
+  let ev = '\u2014';
+
+  if (view.result) {
+    const equity = view.result.equity;
+    const edge = equity - view.needed;
+    const profit = equity * (view.pot + 2 * view.bet) - view.bet;   // average profit from calling
+    if (view.bet === 0) {
+      tone = 'free'; tag = 'FREE CHECK'; sub = 'Nothing to call. See the next card at no cost.'; ev = signed(0);
+    } else if (equity >= view.needed) {
+      tone = 'plus'; tag = '+EV CALL'; sub = 'Profitable. You beat break-even by ' + (edge * 100).toFixed(1) + ' points.'; ev = signed(profit);
     } else {
-        showVerdict('bad', '-EV FOLD', equityText + ' You need ' + (needed * 100).toFixed(1) + '%. Average loss: $' + Math.abs(ev).toFixed(2) + '.');
+      tone = 'minus'; tag = '\u2212EV FOLD'; sub = 'Unprofitable. You are ' + (-edge * 100).toFixed(1) + ' points short of break-even.'; ev = signed(profit);
     }
+  }
+  app.dataset.tone = tone;     
+  vTag.textContent = tag;
+  vSub.textContent = sub;
+  vEv.textContent = ev;
+}
+updaters.push(drawVerdict);
+
+// ---- the opponent buttons ----
+const segmentPainters = [];
+function paintSegments() { segmentPainters.forEach(paint => paint()); }
+function wireSegment(id, key) {
+  const buttons = document.querySelectorAll('#' + id + ' button');
+  function paint() {
+    buttons.forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.v) === settings[key])));
+  }
+  segmentPainters.push(paint);
+  buttons.forEach(b => b.addEventListener('click', () => {
+    settings[key] = Number(b.dataset.v);
+    paint();
+    calculate();
+  }));
+  paint();
+}
+wireSegment('seg-opps', 'opps');
+
+// The gauge is an SVG half circle. polar() turns "how far along" (0 to 1) into x and y.
+function polar(p, radius) {
+  return [120 - radius * Math.cos(Math.PI * p), 118 - radius * Math.sin(Math.PI * p)];
+}
+// arcPath() draws the curved part between two positions.
+function arcPath(from, to, radius) {
+  if (to - from < 0.002) return '';
+  const a = polar(from, radius);
+  const b = polar(to, radius);
+  return 'M' + a[0].toFixed(2) + ' ' + a[1].toFixed(2) + ' A' + radius + ' ' + radius + ' 0 0 1 ' + b[0].toFixed(2) + ' ' + b[1].toFixed(2);
 }
 
-oppsSelect.addEventListener('change', calculate);
-onChange = calculate;
-calculate();
+const zoneLose = document.getElementById('z-lose');
+const zoneWin = document.getElementById('z-win');
+const tick = document.getElementById('tick');
+const needle = document.getElementById('needle');
+const eqBig = document.getElementById('eq-big');
+const needBig = document.getElementById('need-big');
+
+function drawGauge(view) {
+  const need = Math.min(Math.max(view.needed, 0), 1);
+  zoneLose.setAttribute('d', arcPath(0, need, 90));      // red zone: below what you need
+  zoneWin.setAttribute('d', arcPath(need, 1, 90));       // green zone: above it
+  const inner = polar(need, 78);
+  const outer = polar(need, 102);
+  tick.setAttribute('x1', inner[0]); tick.setAttribute('y1', inner[1]);
+  tick.setAttribute('x2', outer[0]); tick.setAttribute('y2', outer[1]);
+  needBig.textContent = view.bet > 0 ? pct(view.needed) : '0%';
+
+  if (view.result) {
+    eqBig.textContent = pct(view.result.equity);
+    needle.style.transform = 'rotate(' + (view.result.equity * 180 - 90).toFixed(1) + 'deg)';   // -90 = far left, +90 = far right
+  } else {
+    eqBig.textContent = '\u2014';
+    needle.style.transform = 'rotate(-90deg)';
+  }
+}
+updaters.push(drawGauge);
