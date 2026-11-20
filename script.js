@@ -416,3 +416,45 @@ function drawGauge(view) {
   }
 }
 updaters.push(drawGauge);
+
+const el = {
+  win: document.getElementById('sb-win'), tie: document.getElementById('sb-tie'), lose: document.getElementById('sb-lose'),
+  winText: document.getElementById('sl-win'), tieText: document.getElementById('sl-tie'), loseText: document.getElementById('sl-lose'),
+  odds: document.getElementById('t-odds'), oddsSub: document.getElementById('t-odds-s'),
+  req: document.getElementById('t-req'), edge: document.getElementById('t-edge'),
+  method: document.getElementById('t-method'), methodSub: document.getElementById('t-method-s'),
+  potHint: document.getElementById('pot-hint'), betHint: document.getElementById('bet-hint')
+};
+
+function drawStats(view) {
+  const { pot, bet, result } = view;
+
+  // numbers that only depend on the money
+  el.odds.textContent = bet > 0 ? ((pot + bet) / bet).toFixed(1) + ' : 1' : 'No bet';
+  el.oddsSub.textContent = bet > 0 ? 'Win ' + money(pot + bet) + ' for ' + money(bet) : 'Checking costs nothing';
+  el.req.textContent = bet > 0 ? pct(view.needed) : '0.0%';
+  el.potHint.textContent = 'After call: ' + money(pot + 2 * bet);
+  el.betHint.textContent = pot > 0 ? Math.round(bet / pot * 100) + '% of pot' : '';
+
+  // numbers that need the simulation
+  if (!result) {
+    el.win.style.width = '0'; el.tie.style.width = '0'; el.lose.style.width = '100%';
+    el.winText.textContent = el.tieText.textContent = el.loseText.textContent = '\u2014';
+    el.edge.textContent = '\u2014'; el.method.textContent = '\u2014'; el.methodSub.textContent = '\u00a0';
+    return;
+  }
+  const lose = Math.max(0, 1 - result.win - result.tie);
+  el.win.style.width = result.win * 100 + '%';
+  el.tie.style.width = result.tie * 100 + '%';
+  el.lose.style.width = lose * 100 + '%';
+  el.winText.textContent = pct(result.win);
+  el.tieText.textContent = pct(result.tie);
+  el.loseText.textContent = pct(lose);
+
+  const edge = result.equity - view.needed;
+  el.edge.textContent = (edge >= 0 ? '+' : '\u2212') + Math.abs(edge * 100).toFixed(1) + ' pts';
+  const margin = 1.96 * Math.sqrt(result.equity * (1 - result.equity) / RUNS) * 100;   // how far off the estimate could be
+  el.method.textContent = 'Simulated';
+  el.methodSub.textContent = RUNS.toLocaleString('en-US') + ' deals, \u00b1' + margin.toFixed(1) + ' pts';
+}
+updaters.push(drawStats);

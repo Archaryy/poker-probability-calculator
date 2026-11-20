@@ -105,6 +105,12 @@
         </div>
 
         <div class="gauge-card" id="gauge-card">
+          <div class="tiles">
+            <div class="tile"><span class="lbl">Pot odds</span><b id="t-odds">&mdash;</b><small id="t-odds-s">&nbsp;</small></div>
+            <div class="tile"><span class="lbl">Break-even</span><b id="t-req">&mdash;</b><small>Least you must win</small></div>
+            <div class="tile"><span class="lbl">Edge</span><b id="t-edge">&mdash;</b><small>Win chance minus need</small></div>
+            <div class="tile"><span class="lbl">Method</span><b id="t-method">&mdash;</b><small id="t-method-s">&nbsp;</small></div>
+          </div>
           <div class="gauge-wrap">
             <svg viewBox="0 0 240 134" role="img" aria-label="Win chance gauge">
               <path id="z-lose" class="z-lose" fill="none" stroke-width="18" d=""></path>
@@ -126,6 +132,14 @@
             <span><i style="background:var(--ro);opacity:.55"></i>Fold zone</span>
             <span><i style="background:var(--em);opacity:.55"></i>Call zone</span>
             <span><i style="background:var(--fg)"></i>Break-even mark</span>
+          </div>
+          <div class="split">
+            <div class="split-bar" aria-hidden="true">
+              <div class="sb-win" id="sb-win" style="width:0"></div>
+              <div class="sb-tie" id="sb-tie" style="width:0"></div>
+              <div class="sb-lose" id="sb-lose" style="width:100%"></div>
+            </div>
+            <div class="split-leg"><span>Win <b id="sl-win">&mdash;</b></span><span>Tie <b id="sl-tie">&mdash;</b></span><span>Lose <b id="sl-lose">&mdash;</b></span></div>
           </div>
         </div>
 
