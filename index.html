@@ -4,37 +4,112 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
   <title>My Poker Helper</title>
 </head>
 <body>
-  <h1>My Poker Helper</h1>
-  <p class="sub">Should I call or fold?</p>
+  <main class="wrap" id="app" data-tone="pending">
+  <header class="top">
+    <div>
+      <h1>Cardcraft Studio</h1>
+      <p class="sub">Win odds, pot odds and call-or-fold in one glance.</p>
+    </div>
+  </header>
+  <div class="studio">
+    <div class="col">
+      <section class="panel" id="panel-hole" aria-labelledby="h-hole">
+        <div class="ph">
+          <div class="ph-text">
+            <h2 id="h-hole"><span class="step">1</span>Your hole cards</h2>
+            <span class="help">The two cards only you can see.</span>
+          </div>
+          <div class="ctl" id="ctl-hole"></div>
+        </div>
+        <div class="hole-row">
+          <button class="slot">?</button>
+          <button class="slot">?</button>
+          <div class="hand-read">
+            <span class="hand-name" id="hole-name">Pick two cards</span>
+            <span class="hand-meta" id="hole-meta">Tap a card in the deck to fill the glowing slot.</span>
+            <span class="chip dim" id="hole-chip" hidden></span>
+          </div>
+        </div>
+      </section>
 
-  <h2>Your hand</h2>
-<div class="row">
-  <button class="slot">?</button>
-  <button class="slot">?</button>
-</div>
+      <section class="panel" id="panel-board" aria-labelledby="h-board">
+        <div class="ph">
+          <div class="ph-text">
+            <h2 id="h-board"><span class="step">2</span>Community board</h2>
+            <span class="help">The shared cards in the middle of the table.</span>
+          </div>
+          <div class="ctl" id="ctl-board"><span class="tag" id="street">Preflop</span></div>
+        </div>
+        <div class="board-row">
+          <span class="gl flop">Flop</span><span class="gl">Turn</span><span class="gl">River</span>
+          <button class="slot">?</button>
+          <button class="slot">?</button>
+          <button class="slot">?</button>
+          <button class="slot">?</button>
+          <button class="slot">?</button>
+        </div>
+      </section>
 
-<h2>Board</h2>
-<div class="row">
-  <button class="slot">?</button>
-  <button class="slot">?</button>
-  <button class="slot">?</button>
-  <button class="slot">?</button>
-  <button class="slot">?</button>
-</div>
+      <section class="panel" id="panel-deck" aria-labelledby="h-deck">
+        <div class="ph">
+          <div class="ph-text">
+            <h2 id="h-deck">Deck</h2>
+            <span class="assign" id="assign">Filling: Hole 1</span>
+          </div>
+        </div>
+        <div class="deck" id="deck">
+          <div class="legend-row">
+            <span><i style="background:var(--em-deep)"></i>In your hand</span>
+            <span><i style="background:#d97706"></i>On the board</span>
+            <span>Tap a marked card to take it back.</span>
+          </div>
+        </div>
+      </section>
 
-<h2>Deck</h2>
-<div id="deck"></div>
-  <!-- Later steps: add new HTML below this line -->
-<h2>Money</h2>
-<div class="row">
-  <label>Pot $ <input type="number" id="pot" value="150" min="0"></label>
-  <label>Bet to call $ <input type="number" id="bet" value="50" min="0"></label>
-</div>
-<p id="odds"></p>
+      <section class="panel" id="panel-pot" aria-labelledby="h-pot">
+        <div class="ph">
+          <div class="ph-text">
+            <h2 id="h-pot"><span class="step">3</span>Pot and bet</h2>
+            <span class="help">What is in the middle, and what you must pay.</span>
+          </div>
+        </div>
+        <div class="pot-grid">
+          <div class="field">
+            <div class="field-top"><label class="lbl" for="pot">Current pot</label><span class="lbl" id="pot-hint"></span></div>
+            <div class="money"><span class="cur">$</span><input id="pot" type="number" value="150" min="0"></div>
+          </div>
+          <div class="field">
+            <div class="field-top"><label class="lbl" for="bet">Bet to call</label><span class="lbl" id="bet-hint"></span></div>
+            <div class="money"><span class="cur">$</span><input id="bet" type="number" value="50" min="0"></div>
+          </div>
+        </div>
+        <p id="odds"></p>
+      </section>
+    </div>
+    <aside class="result" id="decision">
+      <p class="lbl">Opponents</p>
+      <div class="row">
+        <select id="opps">
+          <option value="1">1 opponent</option>
+          <option value="2">2 opponents</option>
+          <option value="3">3 opponents</option>
+          <option value="5">5 opponents</option>
+        </select>
+      </div>
 
-  <script src="script.js"></script>
+      <div id="verdict" class="verdict">
+        <div id="verdict-title" class="title"></div>
+        <div id="verdict-detail" class="detail"></div>
+      </div>
+    </aside>
+  </div>
+</main>
+<script src="script.js"></script>
 </body>
 </html>

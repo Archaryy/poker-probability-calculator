@@ -12,20 +12,30 @@ function isRed(id) {
   return suit === 1 || suit === 2;         // hearts and diamonds
 }
 
-// Build the 52 buttons: one row per suit, 13 cards per row.
+// Build the deck: one row per suit with a big symbol on the left, then 13 small cards.
 const deckDiv = document.getElementById('deck');
 for (let suit = 0; suit < 4; suit++) {
   const row = document.createElement('div');
-  row.className = 'deck-row';
+  row.className = 'suit-row';
+
+  const glyph = document.createElement('div');
+  glyph.className = 'suit-glyph ' + 'shdc'[suit];
+  glyph.textContent = SUITS[suit];
+
+  const ranks = document.createElement('div');
+  ranks.className = 'ranks';
   for (let rank = 0; rank < 13; rank++) {
     const id = rank * 4 + suit;
     const button = document.createElement('button');
-    button.className = 'pick' + (isRed(id) ? ' red' : '');
-    button.textContent = cardText(id);
-    button.dataset.id = id;                       // remember which card this button is
+    button.className = 'pick ' + 'shdc'[suit];
+    button.innerHTML = '<span class="r">' + RANKS[rank] + '</span><span class="g">' + SUITS[suit] + '</span>';
+    button.setAttribute('aria-label', cardText(id));
+    button.dataset.id = id;
     button.addEventListener('click', () => pickCard(id));
-    row.appendChild(button);
+    ranks.appendChild(button);
   }
+  row.appendChild(glyph);
+  row.appendChild(ranks);
   deckDiv.appendChild(row);
 }
 
@@ -54,21 +64,87 @@ function pickCard(id) {
     render();
 }
 
-function render() {
-    slotButtons.forEach((button, i) => {
-        const id = slots[i];
-        button.textContent = id === null ? '?' : cardText(id);
-        button.classList.toggle('filled', id !== null);
-        button.classList.toggle('red', id !== null && isRed(id));
-        button.classList.toggle('active', i === target);
-    });
-    document.querySelectorAll('.pick').forEach(button => {
-        button.classList.toggle('used', slots.includes(Number(button.dataset.id)));
-    });
-    onChange();
+const SLOT_NAMES = ['Hole 1', 'Hole 2', 'Flop 1', 'Flop 2', 'Flop 3', 'Turn', 'River'];
+
+// Where the little suit symbols go on a number card.
+// [column, row]: columns 0-2 left to right, rows 0-6 top to bottom.
+const LAYOUT = {
+  2: [[1, 0], [1, 6]],
+  3: [[1, 0], [1, 3], [1, 6]],
+  4: [[0, 0], [2, 0], [0, 6], [2, 6]],
+  5: [[0, 0], [2, 0], [1, 3], [0, 6], [2, 6]],
+  6: [[0, 0], [2, 0], [0, 3], [2, 3], [0, 6], [2, 6]],
+  7: [[0, 0], [2, 0], [1, 1.5], [0, 3], [2, 3], [0, 6], [2, 6]],
+  8: [[0, 0], [2, 0], [1, 1.5], [0, 3], [2, 3], [1, 4.5], [0, 6], [2, 6]],
+  9: [[0, 0], [2, 0], [0, 2], [2, 2], [1, 3], [0, 4], [2, 4], [0, 6], [2, 6]],
+  10: [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2], [0, 4], [2, 4], [1, 5], [0, 6], [2, 6]]
+};
+
+// Draws the inside of one card as HTML.
+function cardFace(id) {
+  const rank = id >> 2;
+  const suit = SUITS[id & 3];
+  const label = RANKS[rank];
+  const corner = '<b' + (label === '10' ? ' class="ten"' : '') + '>' + label + '</b><i>' + suit + '</i>';
+  let html = '<span class="ci tl">' + corner + '</span><span class="ci br">' + corner + '</span>';
+
+  if (rank === 12) {                       // Ace: one big symbol
+    html += '<span class="ace">' + suit + '</span>';
+  } else if (rank >= 9) {                  // Jack, Queen, King: a framed letter
+    html += '<span class="royal"><i>' + suit + '</i><b>' + label + '</b><i class="flip">' + suit + '</i></span>';
+  } else {                                 // 2 to 10: the right number of symbols
+    let pips = '';
+    for (const [col, row] of LAYOUT[rank + 2]) {
+      const flip = row > 3 ? ' flip' : '';  // the bottom half is upside down, like a real card
+      pips += '<span class="pip' + flip + '" style="left:' + (col * 50) + '%;top:' + (row / 6 * 100) + '%">' + suit + '</span>';
+    }
+    html += '<span class="pips">' + pips + '</span>';
+  }
+  return html;
 }
 
-render();
+const shown = [null, null, null, null, null, null, null];   // what each slot showed last time
+const streetTag = document.getElementById('street');
+const assignLabel = document.getElementById('assign');
+const STREETS = { 0: 'Preflop', 3: 'Flop', 4: 'Turn', 5: 'River' };
+
+// render() makes the screen match the data in `slots`.
+function render() {
+  slotButtons.forEach((button, i) => {
+    const id = slots[i];
+    button.classList.toggle('filled', id !== null);
+    button.classList.toggle('active', i === target);
+    'shdc'.split('').forEach(letter => button.classList.remove(letter));
+    if (id === null) {
+      button.innerHTML = '<span class="plus">+</span><span class="slot-name">' + SLOT_NAMES[i] + '</span>';
+      button.setAttribute('aria-label', SLOT_NAMES[i] + ', empty');
+    } else {
+      button.classList.add('shdc'[id & 3]);                 // s, h, d or c sets the colour
+      button.innerHTML = cardFace(id);
+      button.setAttribute('aria-label', SLOT_NAMES[i] + ', ' + cardText(id));
+      if (shown[i] !== id) {                                 // a new card: play the deal animation
+        button.classList.remove('deal');
+        void button.offsetWidth;                             // lets the browser restart the animation
+        button.classList.add('deal');
+      }
+    }
+    shown[i] = id;
+  });
+
+  document.querySelectorAll('.pick').forEach(button => {
+    const where = slots.indexOf(Number(button.dataset.id));
+    button.classList.toggle('used', where !== -1);
+    button.classList.toggle('hole', where !== -1 && where < 2);
+    button.classList.toggle('board', where >= 2);
+  });
+
+  const boardCount = slots.slice(2).filter(c => c !== null).length;
+  streetTag.textContent = STREETS[boardCount] || boardCount + ' of 3 flop cards';
+  assignLabel.textContent = 'Filling: ' + SLOT_NAMES[target];
+  onChange();
+}
+// Draw the first time once the whole page has loaded.
+window.addEventListener('load', render);
 
 const potInput = document.getElementById('pot');
 const betInput = document.getElementById('bet');
@@ -211,3 +287,45 @@ function card(text) {
   return '23456789TJQKA'.indexOf(text[0]) * 4 + 'shdc'.indexOf(text[1]);
 }
 
+const oppsSelect = document.getElementById('opps');
+const verdictBox = document.getElementById('verdict');
+const verdictTitle = document.getElementById('verdict-title');
+const verdictDetail = document.getElementById('verdict-detail');
+
+function showVerdict(style, title, detail) {
+    verdictBox.className = 'verdict ' + style;
+    verdictTitle.textContent = title;
+    verdictDetail.textContent = detail;
+}
+
+function calculate() {
+    const hero = slots.slice(0, 2).filter(c => c !== null);
+    const board = slots.slice(2).filter(c => c !== null);
+
+    if (hero.length < 2) {
+        showVerdict('', 'Pick your 2 cards', 'Tap two cards in the deck.');
+        return;
+    }
+    if (board.length === 1 || board.length === 2){
+        showVerdict('', 'Finish the flop.', 'The flop is 3 cards. Add ' + (3 - board.length) + ' more, or clear the board.');
+        return;
+    }
+    const pot = getPot();
+    const bet = getBet();
+    const result = simulate(hero, board, Number(oppsSelect.value), 6000);
+    const needed = requiredEquity(pot, bet);
+    const ev = result.equity * (pot + 2 * bet) - bet;
+    const equityText = 'You win ' + (result.equity * 100).toFixed(1) + '% of the time.';
+
+    if (bet === 0) {
+        showVerdict('free', 'FREE CHECK', equityText + 'Nothing to call.');
+    } else if (result.equity >= needed) {
+        showVerdict('good', '+EV CALL', equityText + ' You need ' + (needed * 100).toFixed(1) + '%. Average profit: $' + ev.toFixed(2) + '.');
+    } else {
+        showVerdict('bad', '-EV FOLD', equityText + ' You need ' + (needed * 100).toFixed(1) + '%. Average loss: $' + Math.abs(ev).toFixed(2) + '.');
+    }
+}
+
+oppsSelect.addEventListener('change', calculate);
+onChange = calculate;
+calculate();
