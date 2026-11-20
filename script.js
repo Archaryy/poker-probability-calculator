@@ -175,7 +175,39 @@ function simulate(hero, board, opponents, runs) {
     for (let id = 0; id < 52; id++) {
         if (!known.includes(id)) deck.push(id);
     }
-    const boardNeeded = 5 - board.length;
-    
+
+    const boardNeeded = 5 -board.length;
+    const needed = boardNeeded + 2 * opponents;
+
+    let wins = 0;
+    let ties = 0;
+    let share = 0;
+
+    for (let run = 0; run < runs; run++) {
+        //shuffle needed cards
+        for (let i = 0; i < needed; i++) {
+            const j = i + Math.floor(Math.random() * (deck.length - i));
+            [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+        const fullBoard = [...board, ...deck.slice(0, boardNeeded)];
+        const heroScore = bestScore([...hero, ...fullBoard]);
+
+        let best = -1;
+        let tiedWith = 0;
+        for (let o = 0; o < opponents; o++) {
+            const start = boardNeeded + o * 2;
+            const score = bestScore([deck[start], deck[start + 1], ...fullBoard]);
+            if (score > best) { best = score; tiedWith = 1; }
+            else if (score === best) { tiedWith++; }
+        }
+
+        if (heroScore > best) { wins++; share +=1; }
+        else if (heroScore === best) { ties++; share+=1 / (tiedWith + 1); }
+    }
+    return { win: wins / runs, tie: ties/ runs, equity: share / runs };
+}
+
+function card(text) {
+  return '23456789TJQKA'.indexOf(text[0]) * 4 + 'shdc'.indexOf(text[1]);
 }
 
