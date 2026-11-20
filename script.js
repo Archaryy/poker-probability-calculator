@@ -244,45 +244,6 @@ function bestScore(cards) {
     return best;
 }
 
-// play monte carlo simulation
-function simulate(hero, board, opponents, runs) {
-    const known = [...hero, ...board];
-    const deck = [];
-    for (let id = 0; id < 52; id++) {
-        if (!known.includes(id)) deck.push(id);
-    }
-
-    const boardNeeded = 5 -board.length;
-    const needed = boardNeeded + 2 * opponents;
-
-    let wins = 0;
-    let ties = 0;
-    let share = 0;
-
-    for (let run = 0; run < runs; run++) {
-        //shuffle needed cards
-        for (let i = 0; i < needed; i++) {
-            const j = i + Math.floor(Math.random() * (deck.length - i));
-            [deck[i], deck[j]] = [deck[j], deck[i]];
-        }
-        const fullBoard = [...board, ...deck.slice(0, boardNeeded)];
-        const heroScore = bestScore([...hero, ...fullBoard]);
-
-        let best = -1;
-        let tiedWith = 0;
-        for (let o = 0; o < opponents; o++) {
-            const start = boardNeeded + o * 2;
-            const score = bestScore([deck[start], deck[start + 1], ...fullBoard]);
-            if (score > best) { best = score; tiedWith = 1; }
-            else if (score === best) { tiedWith++; }
-        }
-
-        if (heroScore > best) { wins++; share +=1; }
-        else if (heroScore === best) { ties++; share+=1 / (tiedWith + 1); }
-    }
-    return { win: wins / runs, tie: ties/ runs, equity: share / runs };
-}
-
 function card(text) {
   return '23456789TJQKA'.indexOf(text[0]) * 4 + 'shdc'.indexOf(text[1]);
 }
@@ -302,14 +263,6 @@ function pct(p) { return (p * 100).toFixed(1) + '%'; }
 // ---- simulation, with a memory so we only re-run it when the cards change ----
 let lastKey = '';
 let lastResult = null;
-function runSimulation(hero, board) {
-  const key = [hero.join(), board.slice().sort((a, b) => a - b).join(), settings.opps].join('|');
-  if (key !== lastKey) {
-    lastResult = simulate(hero, board, settings.opps, RUNS);
-    lastKey = key;
-  }
-  return lastResult;
-}
 
 // ---- gather everything the screen needs into one object, then let each updater draw ----
 function calculate() {
@@ -458,3 +411,118 @@ function drawStats(view) {
   el.methodSub.textContent = RUNS.toLocaleString('en-US') + ' deals, \u00b1' + margin.toFixed(1) + ' pts';
 }
 updaters.push(drawStats);
+
+settings.range = 1;      // 1 = any hand, 0.5 = best half of hands, and so on
+
+// ---- ranking every starting hand (the Chen formula) ----
+function chen(high, low, suited) {
+  const points = r => r === 12 ? 10 : r === 11 ? 8 : r === 10 ? 7 : r === 9 ? 6 : (r + 2) / 2;
+  let score;
+  if (high === low) {
+    score = Math.max(5, points(high) * 2);                 // pairs are worth double
+  } else {
+    score = points(high);
+    if (suited) score += 2;
+    const gap = high - low - 1;                            // cards missing between the two
+    score -= gap === 0 ? 0 : gap === 1 ? 1 : gap === 2 ? 2 : gap === 3 ? 4 : 5;
+    if (gap <= 1 && high < 10) score += 1;                 // small connectors can make straights
+  }
+  return Math.ceil(score);
+}
+
+// There are 169 kinds of starting hand and 1,326 actual combinations of two cards.
+const RANGE_STEPS = [1, 0.5, 0.25, 0.1];
+const CLASS_PCT = {};       // "how good is this hand" as a percentage, for AKs, 72o and so on
+const RANGE_COMBOS = {};    // for each range, the list of allowed two-card hands
+(function buildRanges() {
+  const kinds = [];
+  for (let high = 12; high >= 0; high--) {
+    for (let low = high; low >= 0; low--) {
+      if (high === low) kinds.push({ high, low, suited: 0, count: 6 });
+      else {
+        kinds.push({ high, low, suited: 1, count: 4 });
+        kinds.push({ high, low, suited: 0, count: 12 });
+      }
+    }
+  }
+  kinds.forEach(k => { k.score = chen(k.high, k.low, k.suited) * 1000 + k.high * 20 + k.low + (k.suited ? 0.5 : 0); });
+  kinds.sort((a, b) => b.score - a.score);                 // best hands first
+
+  let running = 0;
+  kinds.forEach(k => {
+    running += k.count;
+    k.cumulative = running;
+    CLASS_PCT[k.high * 26 + k.low * 2 + k.suited] = running / 1326 * 100;
+  });
+
+  for (const fraction of RANGE_STEPS) {
+    const limit = Math.max(fraction * 1326, kinds[0].count);
+    const allowed = new Set();
+    kinds.forEach(k => { if (k.cumulative <= limit || k === kinds[0]) allowed.add(k.high * 26 + k.low * 2 + k.suited); });
+    const list = [];
+    for (let a = 0; a < 52; a++) {
+      for (let b = a + 1; b < 52; b++) {
+        const ra = a >> 2, rb = b >> 2;
+        const high = Math.max(ra, rb), low = Math.min(ra, rb);
+        const suited = (a & 3) === (b & 3) ? 1 : 0;
+        if (allowed.has(high * 26 + low * 2 + suited)) list.push(a, b);
+      }
+    }
+    RANGE_COMBOS[fraction] = list;
+  }
+})();
+
+// ---- the new simulate(): opponents now draw their hands from the chosen range ----
+function simulate(hero, board, opponents, runs, range) {
+  const dead = new Set([...hero, ...board]);
+  const everything = RANGE_COMBOS[range];
+  const combos = [];
+  for (let i = 0; i < everything.length; i += 2) {
+    if (!dead.has(everything[i]) && !dead.has(everything[i + 1])) combos.push([everything[i], everything[i + 1]]);
+  }
+  const boardNeeded = 5 - board.length;
+
+  let played = 0, wins = 0, ties = 0, share = 0;
+  for (let run = 0; run < runs; run++) {
+    const used = new Set(dead);
+    const hands = [];
+    for (let o = 0; o < opponents; o++) {
+      let hand = null;
+      for (let tries = 0; tries < 60 && !hand; tries++) {
+        const pick = combos[Math.floor(Math.random() * combos.length)];
+        if (!used.has(pick[0]) && !used.has(pick[1])) hand = pick;
+      }
+      if (!hand) break;
+      used.add(hand[0]); used.add(hand[1]); hands.push(hand);
+    }
+    if (hands.length < opponents) continue;        // could not deal this one, skip it
+
+    const fullBoard = [...board];
+    while (fullBoard.length < 5) {
+      const c = Math.floor(Math.random() * 52);
+      if (!used.has(c)) { used.add(c); fullBoard.push(c); }
+    }
+    const heroScore = bestScore([...hero, ...fullBoard]);
+    let best = -1, tiedWith = 0;
+    for (const hand of hands) {
+      const score = bestScore([...hand, ...fullBoard]);
+      if (score > best) { best = score; tiedWith = 1; }
+      else if (score === best) { tiedWith++; }
+    }
+    played++;
+    if (heroScore > best) { wins++; share += 1; }
+    else if (heroScore === best) { ties++; share += 1 / (tiedWith + 1); }
+  }
+  return { win: wins / played, tie: ties / played, equity: share / played };
+}
+
+// ---- runSimulation now also remembers the range ----
+function runSimulation(hero, board) {
+  const key = [hero.join(), board.slice().sort((a, b) => a - b).join(), settings.opps, settings.range].join('|');
+  if (key !== lastKey) {
+    lastResult = simulate(hero, board, settings.opps, RUNS, settings.range);
+    lastKey = key;
+  }
+  return lastResult;
+}
+wireSegment('seg-range', 'range');
