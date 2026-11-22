@@ -526,3 +526,106 @@ function runSimulation(hero, board) {
   return lastResult;
 }
 wireSegment('seg-range', 'range');
+
+const RANK_NAME = ['Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King', 'Ace'];
+const RANK_PLURAL = ['Twos', 'Threes', 'Fours', 'Fives', 'Sixes', 'Sevens', 'Eights', 'Nines', 'Tens', 'Jacks', 'Queens', 'Kings', 'Aces'];
+
+// turns a score from bestScore back into words.
+function describe(score) {
+  const category = score >> 20;
+  const a = (score >> 16) & 15;
+  const b = (score >> 12) & 15;
+  switch (category) {
+    case 0: return RANK_NAME[a] + ' high';
+    case 1: return 'Pair of ' + RANK_PLURAL[a];
+    case 2: return 'Two pair, ' + RANK_PLURAL[a] + ' and ' + RANK_PLURAL[b];
+    case 3: return 'Three ' + RANK_PLURAL[a];
+    case 4: return 'Straight, ' + RANK_NAME[a].toLowerCase() + ' high';
+    case 5: return 'Flush, ' + RANK_NAME[a].toLowerCase() + ' high';
+    case 6: return RANK_PLURAL[a] + ' full of ' + RANK_PLURAL[b];
+    case 7: return 'Four ' + RANK_PLURAL[a];
+    default: return a === 12 ? 'Royal flush' : 'Straight flush, ' + RANK_NAME[a].toLowerCase() + ' high';
+  }
+}
+
+// fewer than 5 cards cannot use bestScore, directly name hand
+function nameHand(cards) {
+  if (cards.length >= 5) {
+    return describe(bestScore(cards));
+  }
+  const ranks = cards.map(c => c >> 2).sort((a, b) => b - a);
+  return ranks[0] === ranks[1] ? 'Pair of  '+ RANK_PLURAL[ranks[0]] : RANK_NAME[ranks[0]] + ' high';
+}
+
+function categoryOf(cards) {
+  if (cards.length >= 5) return bestScore(cards) >> 20;
+  const counts = {};
+  cards.forEach(c => { counts[c >> 2] = (counts[c >> 2] || 0) + 1; });
+  const sizes = Object.values(counts).sort((a, b) => b - a);
+  if (sizes[0] === 4) return 7;
+  if (sizes[0] === 3) return 3;
+  if (sizes[0] === 2 && sizes[1] === 2) return 2;
+  if (sizes[0] === 2) return 1;
+  return 0;
+}
+
+// out -> card that make hand a better one
+function countOuts(hero, board) {
+  if (board.length < 3 || board.length > 4) return null;
+  const known = [...hero, ...board];
+  const now = categoryOf(known);
+  let outs = 0;
+  for (let c = 0; c < 52; c++) {
+    if (known.includes(c)) continue;
+    const later = categoryOf([...known, c]);
+    const boardAlone = categoryOf([...board, c]);
+    if (later > now && later > boardAlone) outs++;
+  }
+  return outs;
+}
+
+const holeName = document.getElementById('hole-name');
+const holeMeta = document.getElementById('hole-meta');
+const holeChip = document.getElementById('hole-chip');
+const madeHand = document.getElementById('made');
+const madeSub = document.getElementById('made-s');
+const outsChip = document.getElementById('outs');
+
+function drawHand(view) {
+  const { hero, board } = view;
+  if (hero.length > 2) {
+    holeName.textContent = hero.length ? 'Pick one more card' : 'Pick two cards';
+    holeMeta.textContent = 'Tap a card in the deck to fill the glowing slot.';
+    holeChip.hidden = true;
+    madeHand.textContent = '\u2014'; madeSub.textContent = '';
+    outsChip.textContent = 'Outs \u2014'; outsChip.className = 'chip dim';
+    return;
+  }
+// name the two cards, e.g. "Ace-King suited"
+  const ra = hero[0] >> 2, rb = hero[1] >> 2;
+  const high = Math.max(ra, rb), low = Math.min(ra, rb);
+  const suited = (hero[0] & 3) === (hero[1] & 3) ? 1 : 0;
+  holeName.textContent = high === low ? 'Pocket ' + RANK_PLURAL[high] : RANK_NAME[high] + '-' + RANK_NAME[low] + (suited ? ' suited' : ' offsuit');
+  const top = CLASS_PCT[high * 26 + low * 2 + suited];
+  holeMeta.textContent = top <= 10 ? 'A premium starting hand.' : top <= 30 ? 'A solid starting hand.' : top <= 55 ? 'A playable, marginal hand.' : 'A weak starting hand.';
+  holeChip.hidden = false;
+  holeChip.textContent = 'Top ' + (top < 10 ? top.toFixed(1) : Math.round(top)) + '% of hands';
+
+  // the best hand you hold right now
+  madeHand.textContent = nameHand([...hero, ...board]);
+  madeSub.textContent = ['Preflop', '', '', 'On the flop', 'On the turn', 'On the river'][board.length] || '';
+
+  // outs
+  const outs = countOuts (hero, board);
+    if (outs === null) {
+      outsChip.textContent = board.length === 5 ? 'Board complete' : 'Outs after the flop';
+      outsChip.className = 'chip dim';
+  } else if (outs === 0) {
+    outsChip.textContent = '0 outs'; outsChip.className = 'chip dim';
+  } else {
+    const chance = board.length === 3 ? 1 - ((47 - outs) * (46 - outs)) / (47 * 46) : outs / 46;   // odds of hitting by the river / next card
+    outsChip.textContent = outs + ' outs \u00b7 ~' + Math.round(chance * 100) + '% to hit' + (board.length === 3 ? ' by river' : '');
+    outsChip.className = 'chip';
+  } 
+}
+updaters.push(drawHand);
