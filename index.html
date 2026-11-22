@@ -105,11 +105,13 @@
         <div class="pot-grid">
           <div class="field">
             <div class="field-top"><label class="lbl" for="pot">Current pot</label><span class="lbl" id="pot-hint"></span></div>
-            <div class="money"><span class="cur">$</span><input id="sl-pot" type="range" min="0" max="1000" step="5" value="150" aria-label="Current pot slider"></div>
+            <div class="money"><span class="cur">$</span><input id="pot" type="number" value="150" min="0"></div>
+            <input id="sl-pot" type="range" min="0" max="1000" step="5" value="150" aria-label="Current pot slider">
           </div>
           <div class="field">
             <div class="field-top"><label class="lbl" for="bet">Bet to call</label><span class="lbl" id="bet-hint"></span></div>
-            <div class="money"><span class="cur">$</span><input id="sl-bet" type="range" min="0" max="1000" step="5" value="50" aria-label="Bet to call slider"></div>
+            <div class="money"><span class="cur">$</span><input id="bet" type="number" value="50" min="0"></div>
+            <input id="sl-bet" type="range" min="0" max="1000" step="5" value="50" aria-label="Bet to call slider">
           </div>
         </div>
         <p id="odds"></p>
