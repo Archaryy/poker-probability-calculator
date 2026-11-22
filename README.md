@@ -4,7 +4,7 @@ Texas Hold'em win odds, pot odds and call-or-fold in one glance.
 
 **Live demo:** https://archaryy.github.io/poker-probability-calculator/
 
-![Screenshot](docs/screenshot.png)
+![Screenshot](docs/screenshot.jpg)
 
 ## What it does
 - Pick your hole cards and the board, then set the pot and the bet you face
