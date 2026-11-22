@@ -7,13 +7,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
-  <title>My Poker Helper</title>
+  <title>CardCraft Studio</title>
 </head>
 <body>
   <main class="wrap" id="app" data-tone="pending">
   <header class="top">
     <div>
-      <h1>Cardcraft Studio</h1>
+      <h1>Hold'em Helper</h1>
       <p class="sub">Win odds, pot odds and call-or-fold in one glance.</p>
     </div>
     <div class="top-actions">
@@ -42,8 +42,8 @@
           </div>
         </div>
         <div class="hole-row">
-          <button class="slot">?</button>
-          <button class="slot">?</button>
+          <button type="button" class="slot">?</button>
+          <button type="button" class="slot">?</button>
           <div class="hand-read">
             <span class="hand-name" id="hole-name">Pick two cards</span>
             <span class="hand-meta" id="hole-meta">Tap a card in the deck to fill the glowing slot.</span>
@@ -62,13 +62,14 @@
             <button type="button" class="btn sm" id="btn-next">Deal next</button>
             <button type="button" class="btn sm ghost" id="btn-clear-board">Clear</button>
           </div>
+        </div>
         <div class="board-row">
           <span class="gl flop">Flop</span><span class="gl">Turn</span><span class="gl">River</span>
-          <button class="slot">?</button>
-          <button class="slot">?</button>
-          <button class="slot">?</button>
-          <button class="slot">?</button>
-          <button class="slot">?</button>
+          <button type="button" class="slot">?</button>
+          <button type="button" class="slot">?</button>
+          <button type="button" class="slot">?</button>
+          <button type="button" class="slot">?</button>
+          <button type="button" class="slot">?</button>
         </div>
       </section>
 
@@ -180,15 +181,15 @@
               <button type="button" data-v="3" aria-pressed="false">3</button>
               <button type="button" data-v="5" aria-pressed="false">5</button>
             </div>
-            <div class="opp-row"><span class="lbl">Their hands</span>
-              <div class="seg" role="group" aria-label="Opponent hand range" id="seg-range">
-                <button type="button" data-v="1" aria-pressed="true">Any</button>
-                <button type="button" data-v="0.5" aria-pressed="false">Top 50%</button>
-                <button type="button" data-v="0.25" aria-pressed="false">Top 25%</button>
-                <button type="button" data-v="0.1" aria-pressed="false">Top 10%</button>
-              </div>
+          <div class="opp-row"><span class="lbl">Their hands</span>
+            <div class="seg" role="group" aria-label="Opponent hand range" id="seg-range">
+              <button type="button" data-v="1" aria-pressed="true">Any</button>
+              <button type="button" data-v="0.5" aria-pressed="false">Top 50%</button>
+              <button type="button" data-v="0.25" aria-pressed="false">Top 25%</button>
+              <button type="button" data-v="0.1" aria-pressed="false">Top 10%</button>
             </div>
-            <p class="opp-help">Real opponents are not random. When someone bets big, try Top 25% or Top 10%.</p>
+          </div>
+          <p class="opp-help">Real opponents are not random. When someone bets big, try Top 25% or Top 10%.</p>
           </div>
         </div>
         

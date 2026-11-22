@@ -79,7 +79,6 @@ p { margin: 0; text-wrap: pretty; }
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
   gap: 14px; padding-bottom: 18px; border-bottom: 1px solid var(--line);
 }
-.brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
 h1 {
   margin: 0; font-family: var(--display); font-weight: 800; font-size: clamp(1.75rem, 1.3rem + 1.8vw, 2.4rem);
   letter-spacing: -0.03em; line-height: 1.05; text-wrap: balance;
@@ -141,19 +140,6 @@ h1 {
   font-family: var(--display); font-weight: 700; font-size: 1.75rem; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
 }
 
-/* Under 960px wide: one column, and the decision card is no longer pinned. */
-@media (max-width: 960px) {
-  .studio { grid-template-columns: minmax(0, 1fr); max-width: 760px; margin-inline: auto; width: 100%; }
-  .result { position: static; max-height: none; overflow: visible; padding: 0; margin: 0; }
-}
-
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
-  margin-bottom: 16px;
-}
 .slot {
   position: relative; display: block; width: 100%; aspect-ratio: 5 / 7; border-radius: 12px; padding: 0; overflow: hidden;
   container-type: inline-size;
@@ -162,7 +148,6 @@ h1 {
   color: var(--dim); text-align: center;
   transition: transform 160ms var(--ease), box-shadow 160ms var(--ease), border-color 160ms var(--ease);
 }
-.slot:hover { transform: translateY(-4px); border-color: var(--muted); }
 .slot .plus {
   position: absolute; left: 0; right: 0; top: 34%; font-family: var(--display); font-size: 22cqw; font-weight: 500; line-height: 1;
 }
@@ -235,7 +220,6 @@ body.four-color .suit-glyph.c { --c: var(--em); }
 }
 .pick .r { font-family: var(--display); font-weight: 800; font-size: 1.05rem; letter-spacing: -0.04em; }
 .pick .g { font-size: 1rem; }
-.pick:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4); }
 .pick:active { transform: translateY(0); }
 .pick.hole, .pick.board { opacity: 0.45; filter: saturate(0.4); box-shadow: none; }
 .pick.hole::after, .pick.board::after {
@@ -288,8 +272,6 @@ input, select {
 .seg button[aria-pressed="true"] { background: var(--em); color: #03130c; }
 .opp-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
 .opp-help { color: var(--muted); font-size: 0.9rem; }
-.note { color: var(--muted); font-size: 0.9rem; max-width: 70ch; }
-.err { margin: 0; color: var(--ro); font-size: 0.9rem; min-height: 1.2em; }
 
 .gauge-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 20px 22px; display: grid; gap: 16px; }
 .gauge-wrap { max-width: 420px; width: 100%; margin: 0 auto; }
@@ -318,6 +300,7 @@ input, select {
 .split-leg { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 0.9375rem; font-variant-numeric: tabular-nums; color: var(--muted); }
 .split-leg b { color: var(--fg); font-weight: 700; }
 .tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.tiles .read-strip { grid-column: 1 / -1; }
 .tile { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; display: grid; gap: 3px; min-width: 0; align-content: start; }
 .tile b { font-family: var(--display); font-weight: 700; font-size: 1.5rem; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; line-height: 1.2; }
 .tile small { color: var(--muted); font-size: 0.875rem; }
@@ -414,8 +397,8 @@ details.learn[open] summary::after { content: "\2212"; }
   .deck { padding: 10px; }
   .suit-row { grid-template-columns: 24px minmax(0, 1fr); gap: 6px; }
   .ranks { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
-  .pk { min-height: 58px; }
-  .pk .r { font-size: 1.15rem; }
+  .pick { min-height: 58px; }
+  .pick .r { font-size: 1.15rem; }
   .v-ev { text-align: left; }
   .btn.sm { min-height: 44px; }
   .top-actions .btn { flex: 1; }
@@ -434,3 +417,9 @@ input[type="range"] { width: 100%; accent-color: var(--em); height: 32px; margin
 .money input::-webkit-outer-spin-button,
 .money input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .money input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
+@media (hover: hover) {
+  .slot:hover { transform: translateY(-4px); border-color: var(--muted); }
+  .pick:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4); }
+}
+button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }

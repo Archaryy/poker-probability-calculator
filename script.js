@@ -27,6 +27,7 @@ for (let suit = 0; suit < 4; suit++) {
   for (let rank = 0; rank < 13; rank++) {
     const id = rank * 4 + suit;
     const button = document.createElement('button');
+    button.type = "button";
     button.className = 'pick ' + 'shdc'[suit];
     button.innerHTML = '<span class="r">' + RANKS[rank] + '</span><span class="g">' + SUITS[suit] + '</span>';
     button.setAttribute('aria-label', cardText(id));
@@ -554,7 +555,7 @@ function nameHand(cards) {
     return describe(bestScore(cards));
   }
   const ranks = cards.map(c => c >> 2).sort((a, b) => b - a);
-  return ranks[0] === ranks[1] ? 'Pair of  '+ RANK_PLURAL[ranks[0]] : RANK_NAME[ranks[0]] + ' high';
+  return ranks[0] === ranks[1] ? 'Pair of '+ RANK_PLURAL[ranks[0]] : RANK_NAME[ranks[0]] + ' high';
 }
 
 function categoryOf(cards) {
@@ -593,8 +594,8 @@ const outsChip = document.getElementById('outs');
 
 function drawHand(view) {
   const { hero, board } = view;
-  if (hero.length > 2) {
-    holeName.textContent = hero.length ? 'Pick one more card' : 'Pick two cards';
+  if (hero.length < 2) {
+    holeName.textContent = hero.length === 1 ? 'Pick one more card' : 'Pick two cards';
     holeMeta.textContent = 'Tap a card in the deck to fill the glowing slot.';
     holeChip.hidden = true;
     madeHand.textContent = '\u2014'; madeSub.textContent = '';
