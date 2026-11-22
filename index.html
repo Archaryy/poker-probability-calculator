@@ -16,7 +16,15 @@
       <h1>Cardcraft Studio</h1>
       <p class="sub">Win odds, pot odds and call-or-fold in one glance.</p>
     </div>
+    <div class="top-actions">
+      <button type="button" class="btn" id="btn-tour">Take the tour</button>
+    </div>
   </header>
+  <div class="hint" id="tour-hint" hidden>
+    <p><b>New here?</b> A 40-second tour shows how to enter a hand and read the answer.</p>
+    <button type="button" class="btn primary" id="hint-go">Start the tour</button>
+    <button type="button" class="btn ghost" id="hint-no">No thanks</button>
+  </div>
   <div class="studio">
     <div class="col">
       <section class="panel" id="panel-hole" aria-labelledby="h-hole">
@@ -166,9 +174,45 @@
             <p class="opp-help">Real opponents are not random. When someone bets big, try Top 25% or Top 10%.</p>
           </div>
         </div>
+        
+        <details class="learn" id="why" open>
+          <summary>Why this verdict?</summary>
+          <div class="learn-body"><ol id="why-list"><li>Fill in your cards to see the working here.</li></ol></div>
+        </details>
+
+        <details class="learn" id="words">
+          <summary>Poker words, explained</summary>
+          <div class="learn-body">
+            <dl>
+              <dt>Equity (win chance)</dt><dd>How often you win, counting a tie as half a win, if the rest of the hand is dealt out many times.</dd>
+              <dt>Pot odds and break-even</dt><dd>The least you must win for a call to make money. It is your call divided by the pot after you call.</dd>
+              <dt>EV (expected value)</dt><dd>Your average profit or loss if you made this exact call over and over. Plus means call, minus means fold.</dd>
+              <dt>Outs</dt><dd>Unseen cards that would improve your hand. More outs means a better chance to catch up.</dd>
+              <dt>Range</dt><dd>The set of hands an opponent could hold. "Top 10%" means only the strongest starting hands.</dd>
+              <dt>Flop, turn, river</dt><dd>The first three shared cards, then the fourth, then the fifth.</dd>
+            </dl>
+          </div>
+        </details>
       </aside>
   </div>
 </main>
+<button type="button" class="dock" id="dock" data-tone="pending" aria-label="Jump to the decision panel">
+  <span><span class="dock-tag" id="dock-tag">Pick your hand</span><br><span class="dock-sub" id="dock-sub">&nbsp;</span></span>
+  <span class="dock-go" aria-hidden="true">DETAILS &#9650;</span>
+</button>
+<div class="tour" id="tour" hidden>
+  <div class="tour-hole" id="tour-hole"></div>
+  <div class="tour-card" role="dialog" aria-modal="true" aria-labelledby="tour-title">
+    <div class="lbl" id="tour-count">Step 1 of 8</div>
+    <h3 id="tour-title"></h3>
+    <p id="tour-text"></p>
+    <div class="tour-dots" id="tour-dots" aria-hidden="true"></div>
+    <div class="tour-actions">
+      <button type="button" class="btn ghost" id="tour-skip">Skip tour</button>
+      <span class="ctl"><button type="button" class="btn" id="tour-back">Back</button><button type="button" class="btn primary" id="tour-next">Next</button></span>
+    </div>
+  </div>
+</div>
 <script src="script.js"></script>
 </body>
 </html>
