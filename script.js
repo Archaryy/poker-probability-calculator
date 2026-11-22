@@ -757,3 +757,109 @@ function drawDock(view) {
 }
 updaters.push(drawDock);
 dock.addEventListener('click', () => $('decision').scrollIntoView({behavior: 'smooth', block: 'start'}));
+
+// ---- bet size shortcuts and sliders ----
+const potSlider = $('sl-pot');
+const betSlider = $('sl-bet');
+function syncMoney() {
+  potSlider.value = Math.min(getPot(), Number(potSlider.max));
+  betSlider.value = Math.min(getBet(), Number(betSlider.max));
+  showOdds();
+}
+potSlider.addEventListener('input', () => { potInput.value = potSlider.value; showOdds(); });
+betSlider.addEventListener('input', () => { betInput.value = betSlider.value; showOdds(); });
+potInput.addEventListener('input', syncMoney);
+betInput.addEventListener('input', syncMoney);
+document.querySelectorAll('[data-frac]').forEach(button => {
+  button.addEventListener('click', () => {
+    betInput.value = Math.round(getPot() * Number(button.dataset.frac));
+    syncMoney();
+  });
+});
+
+// ---- helpers for dealing random cards ----
+function usedCards() { return slots.filter(c => c !== null); }
+function randomCards(count, avoid) {
+  const out = [];
+  while (out.length < count) {
+    const c = Math.floor(Math.random() * 52);
+    if (!avoid.includes(c) && !out.includes(c)) out.push(c);
+  }
+  return out;
+}
+function nextEmptySlot(from) {
+  for (let k = 1; k <= 7; k++) {
+    const i = (from + k) % 7;
+    if (slots[i] === null) return i;
+  }
+  return from;
+}
+
+// ---- buttons ----
+$('btn-random').addEventListener('click', () => {
+  const taken = usedCards().filter(c => c !== slots[0] && c !== slots[1]);
+  [slots[0], slots[1]] = randomCards(2, taken);
+  target = nextEmptySlot(1);
+  render();
+});
+$('btn-clear-hole').addEventListener('click', () => { slots[0] = slots[1] = null; target = 0; render(); });
+$('btn-clear-board').addEventListener('click', () => {
+  for (let i = 2; i < 7; i++) slots[i] = null;
+  target = slots[0] === null ? 0 : slots[1] === null ? 1 : 2;
+  render();
+});
+$('btn-next').addEventListener('click', () => {
+  const have = slots.slice(2).filter(c => c !== null).length;
+  const want = have === 0 ? 3 : have < 5 ? 1 : 0;          // flop, then turn, then river
+  if (!want) return;
+  const dealt = randomCards(want, usedCards());
+  for (let i = 2; i < 7 && dealt.length; i++) if (slots[i] === null) slots[i] = dealt.shift();
+  target = nextEmptySlot(target);
+  render();
+});
+$('btn-colors').addEventListener('click', function () {
+  const on = document.body.classList.toggle('four-color');
+  this.setAttribute('aria-pressed', String(on));
+});
+
+function loadHand(hand) {
+  slots.fill(null);
+  hand.hole.split(' ').forEach((text, i) => { slots[i] = card(text.replace('10', 'T')); });
+  if (hand.board) hand.board.split(' ').forEach((text, i) => { slots[2 + i] = card(text.replace('10', 'T')); });
+  potInput.value = hand.pot;
+  betInput.value = hand.bet;
+  settings.opps = hand.opps;
+  settings.range = hand.range;
+  paintSegments();
+  target = nextEmptySlot(6);
+  syncMoney();
+  render();
+}
+const EXAMPLES = [
+  { name: 'Nut flush draw', hole: 'As 5s', board: 'Ks 9s 2d', pot: 120, bet: 80, opps: 1, range: 1 },
+  { name: 'Open-ended straight draw', hole: '9h 8h', board: '7d 6c 2s', pot: 100, bet: 50, opps: 1, range: 1 },
+  { name: 'Top pair, good kicker', hole: 'Ad Qc', board: 'As 8h 3d', pot: 160, bet: 80, opps: 1, range: 0.5 },
+  { name: 'Gutshot, big bet', hole: 'Jc Tc', board: 'Ad Qs 4h', pot: 100, bet: 120, opps: 1, range: 0.1 },
+  { name: 'Set on a wet board', hole: '7d 7c', board: '7s 9h 10h', pot: 200, bet: 150, opps: 2, range: 0.5 },
+  { name: 'Pocket aces preflop', hole: 'As Ah', board: '', pot: 45, bet: 30, opps: 1, range: 1 }
+];
+EXAMPLES.forEach(hand => {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'btn sm';
+  button.textContent = hand.name;
+  button.addEventListener('click', () => loadHand(hand));
+  $('scen').appendChild(button);
+});
+$('btn-reset').addEventListener('click', () => {
+  slots.fill(null);
+  target = 0;
+  potInput.value = 150;
+  betInput.value = 50;
+  settings.opps = 1;
+  settings.range = 1;
+  paintSegments();
+  syncMoney();
+  render();
+});
+window.addEventListener('load', () => loadHand(EXAMPLES[0]));
