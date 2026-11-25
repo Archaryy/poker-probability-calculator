@@ -423,3 +423,6 @@ input[type="range"] { width: 100%; accent-color: var(--em); height: 32px; margin
   .pick:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4); }
 }
 button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
+html, body { overscroll-behavior-y: none; }
+button, .slot, .pick { -webkit-user-select: none; user-select: none; }

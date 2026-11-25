@@ -864,3 +864,7 @@ $('btn-reset').addEventListener('click', () => {
   render();
 });
 window.addEventListener('load', () => loadHand(EXAMPLES[0]));
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+}
