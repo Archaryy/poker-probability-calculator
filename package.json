@@ -1,0 +1,6 @@
+{
+  "name": "poker-probability-calculator",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test" }
+}

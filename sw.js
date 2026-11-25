@@ -1,7 +1,9 @@
 const CACHE = 'cardcraft-v1';
 const FILES = [
-  './', 'index.html', 'style.css', 'script.js', 'manifest.webmanifest',
-  'assets/icons/favicon.svg', 'assets/icons/icon-192.png', 'assets/icons/icon-512.png'
+  './', 'index.html', 'css/style.css', 'manifest.webmanifest',
+  'js/main.js', 'js/cards.js', 'js/odds.js', 'js/evaluator.js',
+  'js/ranges.js', 'js/simulate.js', 'js/dom.js', 'js/tour.js',
+  'assets/icons/icon-192.png', 'assets/icons/icon-512.png'
 ];
 
 self.addEventListener('install', e => {

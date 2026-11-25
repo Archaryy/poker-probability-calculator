@@ -1,17 +1,10 @@
-//   rank = which of the 13 ranks (0 = Two ... 12 = Ace)
-//   suit = which of the 4 suits  (0 = spades, 1 = hearts, 2 = diamonds, 3 = clubs)
-//   id   = rank * 4 + suit
-const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-const SUITS = ['♠', '♥', '♦', '♣'];
-
-function cardText(id) {
-  return RANKS[id >> 2] + SUITS[id & 3];   // id >> 2 means "divide by 4"; id & 3 means "remainder after dividing by 4"
-}
-function isRed(id) {
-  const suit = id & 3;
-  return suit === 1 || suit === 2;         // hearts and diamonds
-}
-
+import { $ } from './dom.js';
+import { RANKS, SUITS, RANK_NAME, RANK_PLURAL, cardText, card } from './cards.js';
+import { nameHand, countOuts } from './evaluator.js';
+import { CLASS_PCT } from './ranges.js';
+import { simulate, RUNS } from './simulate.js';
+import { requiredEquity, money, signed, pct } from './odds.js';
+import './tour.js';
 // Build the deck: one row per suit with a big symbol on the left, then 13 small cards.
 const deckDiv = document.getElementById('deck');
 for (let suit = 0; suit < 4; suit++) {
@@ -155,9 +148,6 @@ function getPot() { return Number(potInput.value) || 0; }
 function getBet() { return Number(betInput.value) || 0; }
 
 // break even formula
-function requiredEquity(pot, bet) {
-    return bet / (pot + 2 * bet);
-}
 
 function showOdds() {
     const pot = getPot();
@@ -175,91 +165,11 @@ potInput.addEventListener('input', showOdds);
 betInput.addEventListener('input', showOdds);
 showOdds();
 
-// turn 5 cards into a number, better hand bigger number
-// 0 -> high card, 1 -> pair, 2 -> two pair, 3 -> threes, 4 -> straight, 5 -> flush, 6 -> full house, 7 -> fours, 8 -> straight flush
-function score5(cards) {
-    const ranks = cards.map(c => c >> 2).sort((a, b) => b - a);
-    const flush = cards.every(c => (c & 3) === (cards[0] & 3));
-
-    // count how many of each rank
-    const counts = {};
-    ranks.forEach(r => {
-        counts[r] = (counts[r] || 0) + 1
-    });
-    const groups = Object.keys(counts).map(r => [counts[r], Number(r)]).sort((a, b) => b[0] - a[0] || b[1] - a[1]);
-
-    // straight
-    let straightHigh = -1;
-    if (groups.length === 5) {
-        if (ranks[0] - ranks[4] === 4) straightHigh = ranks[0];
-        else if (ranks[0] === 12 && ranks[1] === 3) straightHigh = 3;
-    }
-
-    let category;
-    if (straightHigh >= 0 && flush) category = 8;
-    else if (groups[0][0] === 4) category = 7;
-    else if (groups[0][0] === 3 && groups[1][0] === 2) category = 6;
-    else if (flush) category = 5;
-    else if (straightHigh >= 0) category = 4;
-    else if (groups[0][0] === 3) category = 3;
-    else if (groups[0][0] === 2 && groups[1][0] === 2) category = 2;
-    else if (groups[0][0] === 2) category = 1;
-    else category = 0;
-
-    // tie breakers
-    const tiebreak = straightHigh >=0 ? [straightHigh] : groups.map(g => g[1]);
-    let score = category;
-    for (let i = 0; i < 5; i++) {
-        score = score * 16 + (tiebreak[i] || 0);
-    }
-    return score;
-}
-
-// finding best 5 of 7 cards
-function combinations(list, k) {
-    const out = [];
-    function choose(start, chosen) {
-        if (chosen.length === k) {
-            out.push(chosen.slice()); return;
-        }
-        for (let i = start; i < list.length; i++) {
-            chosen.push(list[i]);
-            choose(i + 1, chosen);
-            chosen.pop();
-        }
-    }
-    choose(0, []);
-    return out;
-}
-
-//texas holdem
-const comboCache = {};
-function bestScore(cards) {
-    const n = cards.length;
-    if (!comboCache[n]) comboCache[n] = combinations([...Array(n).keys()], 5);
-    let best = -1;
-    for (const picks of comboCache[n]) {
-        const score = score5(picks.map(i => cards[i]));
-        if (score > best) best = score;
-    }
-    return best;
-}
-
-function card(text) {
-  return '23456789TJQKA'.indexOf(text[0]) * 4 + 'shdc'.indexOf(text[1]);
-}
-
 const settings = { opps: 1 };      // how many opponents
-const RUNS = 6000;                 // how many deals each simulation plays out
+              // how many deals each simulation plays out
 const updaters = [];               // each function in here draws one part of the screen
 const app = document.getElementById('app');
 
-// ---- number formatting ----
-function money(x, decimals = 0) {
-  return '$' + Math.abs(x).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-}
-function signed(x) { return (x >= 0 ? '+' : '\u2212') + money(x, 2); }
-function pct(p) { return (p * 100).toFixed(1) + '%'; }
 
 // ---- simulation, with a memory so we only re-run it when the cards change ----
 let lastKey = '';
@@ -415,108 +325,6 @@ updaters.push(drawStats);
 
 settings.range = 1;      // 1 = any hand, 0.5 = best half of hands, and so on
 
-// ---- ranking every starting hand (the Chen formula) ----
-function chen(high, low, suited) {
-  const points = r => r === 12 ? 10 : r === 11 ? 8 : r === 10 ? 7 : r === 9 ? 6 : (r + 2) / 2;
-  let score;
-  if (high === low) {
-    score = Math.max(5, points(high) * 2);                 // pairs are worth double
-  } else {
-    score = points(high);
-    if (suited) score += 2;
-    const gap = high - low - 1;                            // cards missing between the two
-    score -= gap === 0 ? 0 : gap === 1 ? 1 : gap === 2 ? 2 : gap === 3 ? 4 : 5;
-    if (gap <= 1 && high < 10) score += 1;                 // small connectors can make straights
-  }
-  return Math.ceil(score);
-}
-
-// There are 169 kinds of starting hand and 1,326 actual combinations of two cards.
-const RANGE_STEPS = [1, 0.5, 0.25, 0.1];
-const CLASS_PCT = {};       // "how good is this hand" as a percentage, for AKs, 72o and so on
-const RANGE_COMBOS = {};    // for each range, the list of allowed two-card hands
-(function buildRanges() {
-  const kinds = [];
-  for (let high = 12; high >= 0; high--) {
-    for (let low = high; low >= 0; low--) {
-      if (high === low) kinds.push({ high, low, suited: 0, count: 6 });
-      else {
-        kinds.push({ high, low, suited: 1, count: 4 });
-        kinds.push({ high, low, suited: 0, count: 12 });
-      }
-    }
-  }
-  kinds.forEach(k => { k.score = chen(k.high, k.low, k.suited) * 1000 + k.high * 20 + k.low + (k.suited ? 0.5 : 0); });
-  kinds.sort((a, b) => b.score - a.score);                 // best hands first
-
-  let running = 0;
-  kinds.forEach(k => {
-    running += k.count;
-    k.cumulative = running;
-    CLASS_PCT[k.high * 26 + k.low * 2 + k.suited] = running / 1326 * 100;
-  });
-
-  for (const fraction of RANGE_STEPS) {
-    const limit = Math.max(fraction * 1326, kinds[0].count);
-    const allowed = new Set();
-    kinds.forEach(k => { if (k.cumulative <= limit || k === kinds[0]) allowed.add(k.high * 26 + k.low * 2 + k.suited); });
-    const list = [];
-    for (let a = 0; a < 52; a++) {
-      for (let b = a + 1; b < 52; b++) {
-        const ra = a >> 2, rb = b >> 2;
-        const high = Math.max(ra, rb), low = Math.min(ra, rb);
-        const suited = (a & 3) === (b & 3) ? 1 : 0;
-        if (allowed.has(high * 26 + low * 2 + suited)) list.push(a, b);
-      }
-    }
-    RANGE_COMBOS[fraction] = list;
-  }
-})();
-
-// ---- the new simulate(): opponents now draw their hands from the chosen range ----
-function simulate(hero, board, opponents, runs, range) {
-  const dead = new Set([...hero, ...board]);
-  const everything = RANGE_COMBOS[range];
-  const combos = [];
-  for (let i = 0; i < everything.length; i += 2) {
-    if (!dead.has(everything[i]) && !dead.has(everything[i + 1])) combos.push([everything[i], everything[i + 1]]);
-  }
-  const boardNeeded = 5 - board.length;
-
-  let played = 0, wins = 0, ties = 0, share = 0;
-  for (let run = 0; run < runs; run++) {
-    const used = new Set(dead);
-    const hands = [];
-    for (let o = 0; o < opponents; o++) {
-      let hand = null;
-      for (let tries = 0; tries < 60 && !hand; tries++) {
-        const pick = combos[Math.floor(Math.random() * combos.length)];
-        if (!used.has(pick[0]) && !used.has(pick[1])) hand = pick;
-      }
-      if (!hand) break;
-      used.add(hand[0]); used.add(hand[1]); hands.push(hand);
-    }
-    if (hands.length < opponents) continue;        // could not deal this one, skip it
-
-    const fullBoard = [...board];
-    while (fullBoard.length < 5) {
-      const c = Math.floor(Math.random() * 52);
-      if (!used.has(c)) { used.add(c); fullBoard.push(c); }
-    }
-    const heroScore = bestScore([...hero, ...fullBoard]);
-    let best = -1, tiedWith = 0;
-    for (const hand of hands) {
-      const score = bestScore([...hand, ...fullBoard]);
-      if (score > best) { best = score; tiedWith = 1; }
-      else if (score === best) { tiedWith++; }
-    }
-    played++;
-    if (heroScore > best) { wins++; share += 1; }
-    else if (heroScore === best) { ties++; share += 1 / (tiedWith + 1); }
-  }
-  return { win: wins / played, tie: ties / played, equity: share / played };
-}
-
 // ---- runSimulation now also remembers the range ----
 function runSimulation(hero, board) {
   const key = [hero.join(), board.slice().sort((a, b) => a - b).join(), settings.opps, settings.range].join('|');
@@ -528,62 +336,7 @@ function runSimulation(hero, board) {
 }
 wireSegment('seg-range', 'range');
 
-const RANK_NAME = ['Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King', 'Ace'];
-const RANK_PLURAL = ['Twos', 'Threes', 'Fours', 'Fives', 'Sixes', 'Sevens', 'Eights', 'Nines', 'Tens', 'Jacks', 'Queens', 'Kings', 'Aces'];
 
-// turns a score from bestScore back into words.
-function describe(score) {
-  const category = score >> 20;
-  const a = (score >> 16) & 15;
-  const b = (score >> 12) & 15;
-  switch (category) {
-    case 0: return RANK_NAME[a] + ' high';
-    case 1: return 'Pair of ' + RANK_PLURAL[a];
-    case 2: return 'Two pair, ' + RANK_PLURAL[a] + ' and ' + RANK_PLURAL[b];
-    case 3: return 'Three ' + RANK_PLURAL[a];
-    case 4: return 'Straight, ' + RANK_NAME[a].toLowerCase() + ' high';
-    case 5: return 'Flush, ' + RANK_NAME[a].toLowerCase() + ' high';
-    case 6: return RANK_PLURAL[a] + ' full of ' + RANK_PLURAL[b];
-    case 7: return 'Four ' + RANK_PLURAL[a];
-    default: return a === 12 ? 'Royal flush' : 'Straight flush, ' + RANK_NAME[a].toLowerCase() + ' high';
-  }
-}
-
-// fewer than 5 cards cannot use bestScore, directly name hand
-function nameHand(cards) {
-  if (cards.length >= 5) {
-    return describe(bestScore(cards));
-  }
-  const ranks = cards.map(c => c >> 2).sort((a, b) => b - a);
-  return ranks[0] === ranks[1] ? 'Pair of '+ RANK_PLURAL[ranks[0]] : RANK_NAME[ranks[0]] + ' high';
-}
-
-function categoryOf(cards) {
-  if (cards.length >= 5) return bestScore(cards) >> 20;
-  const counts = {};
-  cards.forEach(c => { counts[c >> 2] = (counts[c >> 2] || 0) + 1; });
-  const sizes = Object.values(counts).sort((a, b) => b - a);
-  if (sizes[0] === 4) return 7;
-  if (sizes[0] === 3) return 3;
-  if (sizes[0] === 2 && sizes[1] === 2) return 2;
-  if (sizes[0] === 2) return 1;
-  return 0;
-}
-
-// out -> card that make hand a better one
-function countOuts(hero, board) {
-  if (board.length < 3 || board.length > 4) return null;
-  const known = [...hero, ...board];
-  const now = categoryOf(known);
-  let outs = 0;
-  for (let c = 0; c < 52; c++) {
-    if (known.includes(c)) continue;
-    const later = categoryOf([...known, c]);
-    const boardAlone = categoryOf([...board, c]);
-    if (later > now && later > boardAlone) outs++;
-  }
-  return outs;
-}
 
 const holeName = document.getElementById('hole-name');
 const holeMeta = document.getElementById('hole-meta');
@@ -654,96 +407,6 @@ function drawWhy(view) {
   whyList.innerHTML = steps.map(s => '<li>' + s + '</li>').join('');
 }
 updaters.push(drawWhy);
-const $ = id => document.getElementById(id);
-
-const TOUR = [
-  { sel: '#panel-hole', title: 'Your two cards', text: 'Start here. Tap a slot, then tap a card in the deck. "Random hand" deals two for you so you can see how it works.' },
-  { sel: '#panel-board', title: 'The board', text: 'Add the shared cards as they come out: three for the flop, then the turn, then the river. Leave slots empty for cards not dealt yet.' },
-  { sel: '#panel-deck', title: 'The deck', text: 'Tap any card to place it in the glowing slot. A green dot marks your cards and an amber dot marks the board. Tap a marked card to take it back.' },
-  { sel: '#panel-pot', title: 'Pot and bet', text: 'Type the pot as it was before the bet you face, then the bet you must call. The 1/3, 1/2 and Pot buttons size the bet for you.' },
-  { sel: '#verdict-box', title: 'The verdict', text: 'Green +EV CALL means calling makes money over many repeats. Red \u2212EV FOLD means it loses money. Yellow means there is nothing to call.' },
-  { sel: '#gauge-card', title: 'The gauge', text: 'The needle is your win chance. The white mark is the chance you need to break even. A needle past the mark, in the green, is a call.' },
-  { sel: '#opp-set', title: 'Opponents', text: 'More opponents lower your chances. Tighter hands mean they only play strong cards. When someone bets big, try Top 25% or Top 10%.' },
-  { sel: '#why', title: 'See the working', text: 'Open "Why this verdict?" any time. It walks through the maths in plain words using your own numbers.' }
-];
-let tourIndex = 0;
-let tourOpen = false;
-let tourReturnFocus = null;
-
-// Put the glowing frame exactly over the thing we are talking about.
-function placeFrame() {
-  if (!tourOpen) return;
-  const rect = document.querySelector(TOUR[tourIndex].sel).getBoundingClientRect();
-  const frame = $('tour-hole');
-  frame.style.left = rect.left - 8 + 'px';
-  frame.style.top = rect.top - 8 + 'px';
-  frame.style.width = rect.width + 16 + 'px';
-  frame.style.height = rect.height + 16 + 'px';
-}
-
-function showTourStep(i) {
-  tourIndex = Math.max(0, Math.min(TOUR.length - 1, i));
-  const step = TOUR[tourIndex];
-  const target = document.querySelector(step.sel);
-  if (step.sel === '#why') $('why').open = true;
-  $('tour-count').textContent = 'Step ' + (tourIndex + 1) + ' of ' + TOUR.length;
-  $('tour-title').textContent = step.title;
-  $('tour-text').textContent = step.text;
-  $('tour-back').disabled = tourIndex === 0;
-  $('tour-next').textContent = tourIndex === TOUR.length - 1 ? 'Finish' : 'Next';
-  $('tour-dots').innerHTML = TOUR.map((_, k) => '<i class="' + (k === tourIndex ? 'on' : '') + '"></i>').join('');
-
-  if (window.innerWidth > 960 && target.closest('.result')) {
-    // wide screens: the decision column is pinned, so scroll inside it
-    const column = $('decision');
-    column.scrollTop = Math.max(0, target.getBoundingClientRect().top - column.getBoundingClientRect().top + column.scrollTop - 6);
-  } else {
-    const top = Math.max(0, target.getBoundingClientRect().top + window.pageYOffset - 70);
-    const far = Math.abs(top - window.pageYOffset) > 900;
-    window.scrollTo({ top: top, behavior: far ? 'auto' : 'smooth' });
-  }
-  placeFrame();
-  $('tour-next').focus({ preventScroll: true });
-}
-
-function startTour() {
-  tourReturnFocus = document.activeElement;
-  tourOpen = true;
-  $('tour').hidden = false;
-  $('tour-hint').hidden = true;
-  rememberTour();
-  showTourStep(0);
-}
-function endTour() {
-  tourOpen = false;
-  $('tour').hidden = true;
-  if (tourReturnFocus && tourReturnFocus.focus) tourReturnFocus.focus({ preventScroll: true });
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-// Remember that the visitor has seen the tour, so we do not nag them.
-function rememberTour() { try { localStorage.setItem('poker-tour-seen', '1'); } catch (e) {} }
-
-$('btn-tour').addEventListener('click', startTour);
-$('hint-go').addEventListener('click', startTour);
-$('hint-no').addEventListener('click', () => { $('tour-hint').hidden = true; rememberTour(); });
-$('tour-skip').addEventListener('click', endTour);
-$('tour-back').addEventListener('click', () => showTourStep(tourIndex - 1));
-$('tour-next').addEventListener('click', () => { if (tourIndex >= TOUR.length - 1) endTour(); else showTourStep(tourIndex + 1); });
-window.addEventListener('scroll', () => { if (tourOpen) requestAnimationFrame(placeFrame); }, { passive: true });
-window.addEventListener('resize', placeFrame);
-$('decision').addEventListener('scroll', () => { if (tourOpen) requestAnimationFrame(placeFrame); }, { passive: true });
-document.addEventListener('keydown', e => {
-  if (!tourOpen) return;
-  if (e.key === 'Escape') endTour();
-  else if (e.key === 'ArrowRight') $('tour-next').click();
-  else if (e.key === 'ArrowLeft' && tourIndex > 0) showTourStep(tourIndex - 1);
-});
-
-// Show the "New here?" banner only if they have not seen the tour.
-let seenTour = false;
-try { seenTour = localStorage.getItem('poker-tour-seen') === '1'; } catch (e) {}
-$('tour-hint').hidden = seenTour;
 
 const dock = document.getElementById('dock');
 const dockTag = document.getElementById('dock-tag');
