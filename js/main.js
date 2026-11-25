@@ -170,7 +170,6 @@ const settings = { opps: 1 };      // how many opponents
 const updaters = [];               // each function in here draws one part of the screen
 const app = document.getElementById('app');
 
-
 // ---- simulation, with a memory so we only re-run it when the cards change ----
 let lastKey = '';
 let lastResult = null;
@@ -189,6 +188,7 @@ function calculate() {
     view.message = 'The flop needs three cards. Add ' + (3 - board.length) + ' more, or clear the board.';
   } else {
     view.result = runSimulation(hero, board);
+    if (!view.result) { view.busy = true; view.message = 'Running the simulation…'; }
   }
   updaters.forEach(draw => draw(view));
 }
@@ -326,17 +326,36 @@ updaters.push(drawStats);
 settings.range = 1;      // 1 = any hand, 0.5 = best half of hands, and so on
 
 // ---- runSimulation now also remembers the range ----
+let worker = null;
+try { worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' }); } catch (e) { worker = null; }
+let pendingKey = '';
+
 function runSimulation(hero, board) {
   const key = [hero.join(), board.slice().sort((a, b) => a - b).join(), settings.opps, settings.range].join('|');
-  if (key !== lastKey) {
+  if (key === lastKey) return lastResult;                      // already worked out
+  if (!worker) {                                               // no worker: run it here
     lastResult = simulate(hero, board, settings.opps, RUNS, settings.range);
     lastKey = key;
+    return lastResult;
   }
-  return lastResult;
+  if (key !== pendingKey) {                                    // ask the worker once per change
+    pendingKey = key;
+    worker.postMessage({ key, hero, board, opps: settings.opps, runs: RUNS, range: settings.range });
+  }
+  return null;                                                 // the answer arrives later
+}
+
+if (worker) {
+  worker.onmessage = e => {
+    if (e.data.key !== pendingKey) return;                     // an old answer: ignore it
+    lastKey = e.data.key;
+    lastResult = e.data.result;
+    pendingKey = '';
+    calculate();
+  };
+  worker.onerror = () => { worker = null; pendingKey = ''; calculate(); };
 }
 wireSegment('seg-range', 'range');
-
-
 
 const holeName = document.getElementById('hole-name');
 const holeMeta = document.getElementById('hole-meta');
