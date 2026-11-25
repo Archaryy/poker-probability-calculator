@@ -2,7 +2,7 @@ import { RANK_NAME, RANK_PLURAL } from './cards.js';
 
 // turn 5 cards into a number, better hand bigger number
 // 0 -> high card, 1 -> pair, 2 -> two pair, 3 -> threes, 4 -> straight, 5 -> flush, 6 -> full house, 7 -> fours, 8 -> straight flush
-function score5(cards) {
+export function score5(cards) {
     const ranks = cards.map(c => c >> 2).sort((a, b) => b - a);
     const flush = cards.every(c => (c & 3) === (cards[0] & 3));
 
@@ -41,7 +41,7 @@ function score5(cards) {
 }
 
 // finding best 5 of 7 cards
-function combinations(list, k) {
+export function combinations(list, k) {
     const out = [];
     function choose(start, chosen) {
         if (chosen.length === k) {
@@ -71,7 +71,7 @@ export function bestScore(cards) {
 }
 
 // turns a score from bestScore back into words.
-function describe(score) {
+export function describe(score) {
   const category = score >> 20;
   const a = (score >> 16) & 15;
   const b = (score >> 12) & 15;
