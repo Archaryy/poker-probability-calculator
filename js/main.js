@@ -5,6 +5,7 @@ import { CLASS_PCT } from './ranges.js';
 import { simulate, RUNS } from './simulate.js';
 import { requiredEquity, money, signed, pct } from './odds.js';
 import './tour.js';
+import { phone, setTab } from './tabs.js'
 // Build the deck: one row per suit with a big symbol on the left, then 13 small cards.
 const deckDiv = document.getElementById('deck');
 for (let suit = 0; suit < 4; suit++) {
@@ -435,11 +436,30 @@ function drawDock(view) {
   dock.dataset.tone = app.dataset.tone;
   dockTag.textContent = vTag.textContent;
   dockSub.textContent = view.result 
-  ? 'Win chance ' + pct(view.result.equity) + (view.bet > 0 ? '\u00b7 need ' + pct(view.needed) : '')
+  ? 'Win chance ' + pct(view.result.equity) + (view.bet > 0 ? ' \u00b7 need ' + pct(view.needed) : '')
   : '\u00a0';
 }
 updaters.push(drawDock);
-dock.addEventListener('click', () => $('decision').scrollIntoView({behavior: 'smooth', block: 'start'}));
+
+const mini = $('mini');
+const miniCards = mini.querySelectorAll('.mini-card');
+function drawMini() {
+  const spoken = [];
+  miniCards.forEach((el, i) => {
+    const id = slots[i];
+    el.className = 'mini-card' + (id === null ? ' empty' : ' ' + 'shdc'[id & 3]);
+    el.innerHTML = id === null ? '' : '<b>' + RANKS[id >> 2] + '</b><i>' + SUITS[id & 3] + '</i>';
+    if (id !== null) spoken.push(cardText(id));
+  });
+  mini.setAttribute('aria-label', (spoken.length ? 'Your cards: ' + spoken.join(', ') : 'No cards picked') + '. Tap to edit.');
+}
+updaters.push(drawMini);
+mini.addEventListener('click', () => setTab('hand'));
+
+dock.addEventListener('click', () => {
+  if (phone.matches) setTab('odds');
+  else $('decision').scrollIntoView({behavior: 'smooth', block: 'start'});
+});
 
 // ---- bet size shortcuts and sliders ----
 const potSlider = $('sl-pot');

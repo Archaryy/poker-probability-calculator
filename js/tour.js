@@ -1,4 +1,11 @@
 import { $ } from './dom.js';
+import { phone, setTab } from './tabs.js';
+
+const TAB_FOR = {
+  '#panel-hole': 'hand', '#panel-board': 'hand', '#panel-deck': 'hand',
+  '#panel-pot': 'bet', '#opp-set': 'bet',
+  '#verdict-box': 'odds', '#gauge-card': 'odds', '#why': 'odds'
+};
 
 const TOUR = [
   { sel: '#panel-hole', title: 'Your two cards', text: 'Start here. Tap a slot, then tap a card in the deck. "Random hand" deals two for you so you can see how it works.' },
@@ -28,6 +35,7 @@ function placeFrame() {
 function showTourStep(i) {
   tourIndex = Math.max(0, Math.min(TOUR.length - 1, i));
   const step = TOUR[tourIndex];
+  if (phone.matches && TAB_FOR[step.sel]) setTab(TAB_FOR[step.sel]);
   const target = document.querySelector(step.sel);
   if (step.sel === '#why') $('why').open = true;
   $('tour-count').textContent = 'Step ' + (tourIndex + 1) + ' of ' + TOUR.length;

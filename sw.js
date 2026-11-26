@@ -1,9 +1,11 @@
-const CACHE = 'cardcraft-v3';
+const CACHE = 'cardcraft-v4';
 const FILES = [
   './', 'index.html', 'css/style.css', 'manifest.webmanifest',
   'js/main.js', 'js/cards.js', 'js/odds.js', 'js/evaluator.js',
-  'js/ranges.js', 'js/simulate.js', 'js/dom.js', 'js/tour.js', 
-  'js/worker.js', 'assets/icons/icon-192.png', 'assets/icons/icon-512.png'
+  'js/ranges.js', 'js/simulate.js', 'js/dom.js', 'js/tour.js', 'js/tabs.js',
+  'js/worker.js',
+  'assets/icons/icon-192.svg', 'assets/icons/icon-512.svg', 
+  'assets/icons/apple-touch-icon.svg'
 ];
 
 self.addEventListener('install', e => {

@@ -426,3 +426,156 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
 html, body { overscroll-behavior-y: none; }
 button, .slot, .pick { -webkit-user-select: none; user-select: none; }
+
+/* =====================================================================
+   PHONE APP LAYOUT (640px and narrower only)
+   Desktop and tablet are untouched. On phones the page becomes an app:
+   a fixed verdict bar on top, a fixed tab bar at the bottom, and only
+   one tab's content in between: Cards / Bet / Odds / More.
+   ===================================================================== */
+.tabbar { display: none; }
+.mini { display: none; }
+.fracs-m { display: none; }
+
+@media (max-width: 640px) {
+  :root { --dock-h: 64px; --tab-h: 60px; --mini-h: 62px; }
+
+  /* short tabs must still fill the screen, and the glow must not tile */
+  body { min-height: 100vh; min-height: 100dvh; background-repeat: no-repeat; }
+
+  /* flatten the grids so every panel can be shown or hidden on its own */
+  .studio, .col, .result { display: contents; }
+  .wrap {
+    display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-content: start;
+    padding-top: calc(var(--dock-h) + 10px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(var(--tab-h) + 14px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* what each tab shows */
+  #app > .top, #app > .hint,
+  #panel-hole, #panel-board, #panel-deck, #panel-pot, #opp-set,
+  #verdict-box, #gauge-card, #why, #words { display: none; }
+  #app[data-tab="hand"] :is(#panel-hole, #panel-board, #panel-deck),
+  #app[data-tab="bet"]  :is(#panel-pot, #opp-set),
+  #app[data-tab="odds"] :is(#verdict-box, #gauge-card) { display: grid; }
+  #app[data-tab="odds"] #why { display: block; }
+  #app[data-tab="more"] > .top { display: flex; }
+  #app[data-tab="more"] > .hint,
+  #app[data-tab="more"] > .hint[hidden] { display: flex !important; }   /* the example hands live here */
+  #app[data-tab="more"] #words { display: block; }
+  #app[data-tab="more"] > .hint > :is(p, .btn) { display: none; }
+  #app > .top { padding-top: 6px; }
+  #app[data-tab="more"] .scen { flex-wrap: wrap; overflow: visible; }
+
+  /* verdict bar: fixed at the top, always visible */
+  .dock {
+    top: 0; bottom: auto; min-height: var(--dock-h);
+    padding-top: calc(8px + env(safe-area-inset-top, 0px)); padding-bottom: 8px;
+    border-top: 0; border-bottom: 2px solid var(--line-hi);
+    transition: border-color 220ms var(--ease);
+  }
+  .dock-tag { font-size: 1.45rem; }
+  .dock-sub { font-size: 0.85rem; line-height: 1.3; }
+  .dock[data-tone="plus"]  { border-bottom-color: var(--em-edge); }
+  .dock[data-tone="minus"] { border-bottom-color: var(--ro-edge); }
+  .dock[data-tone="free"]  { border-bottom-color: var(--am-edge); }
+
+  /* tab bar: fixed at the bottom */
+  .tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+    background: rgba(6, 13, 30, 0.97); backdrop-filter: blur(10px); border-top: 1px solid var(--line-hi);
+  }
+  .tabbar button {
+    min-height: var(--tab-h); display: grid; justify-items: center; align-content: center; gap: 3px;
+    border: 0; background: transparent; color: var(--muted);
+    font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em;
+  }
+  .tabbar svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .tabbar button[aria-current="true"] { color: var(--em); box-shadow: inset 0 2px 0 var(--em); }
+  .tour { z-index: 60; }
+
+  /* "your cards" strip: sits above the tab bar on Bet and Odds, so the hand is never out of sight */
+  .mini {
+    position: fixed; left: 0; right: 0; z-index: 19; bottom: calc(var(--tab-h) + env(safe-area-inset-bottom, 0px));
+    height: var(--mini-h); display: none; align-items: center; gap: 5px; padding: 0 16px;
+    background: rgba(11, 19, 37, 0.97); backdrop-filter: blur(10px); border: 0; border-top: 1px solid var(--line-hi); text-align: left;
+  }
+  #app[data-tab="bet"] ~ .mini, #app[data-tab="odds"] ~ .mini { display: flex; }
+  #app[data-tab="bet"], #app[data-tab="odds"] { padding-bottom: calc(var(--tab-h) + var(--mini-h) + 14px + env(safe-area-inset-bottom, 0px)); }
+  .mini-lbl { font-family: var(--mono); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); writing-mode: vertical-rl; transform: rotate(180deg); }
+  .mini-sep { width: 1px; align-self: stretch; margin: 10px 6px; background: var(--line-hi); }
+  .mini-card {
+    flex: 1 1 0; max-width: 40px; height: 46px; border-radius: 6px; display: grid; place-items: center; align-content: center; line-height: 1;
+    background: linear-gradient(160deg, var(--face-top), var(--face-bot)); border: 1px solid var(--face-edge); color: var(--c);
+  }
+  .mini-card b { font-family: var(--display); font-weight: 800; font-size: 0.95rem; letter-spacing: -0.06em; }
+  .mini-card i { font-style: normal; font-size: 0.9rem; margin-top: 1px; }
+  .mini-card.empty { background: var(--well); border: 1.5px dashed var(--line-hi); }
+  .mini-card.s { --c: var(--face-s); } .mini-card.h { --c: var(--face-h); }
+  .mini-card.d { --c: var(--face-d); } .mini-card.c { --c: var(--face-c); }
+
+  /* compact panels */
+  .panel { padding: 12px; gap: 10px; }
+  .ph { gap: 8px; flex-wrap: nowrap; }
+  .ph .help, .tag { display: none; }
+  .ph h2 { font-size: 1.05rem; gap: 8px; }
+  .step { display: none; }
+  .btn.sm { min-height: 40px; padding: 0 11px; }
+  .ctl { gap: 6px; flex-wrap: nowrap; }
+
+  /* hole cards: two cards plus a short read-out, one row */
+  .hole-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 3fr); gap: 6px; align-items: center; }
+  .hand-read { grid-column: auto; padding-left: 6px; gap: 3px; }
+  .hand-name { font-size: 1.05rem; }
+  .hand-meta { font-size: 0.8rem; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .board-row { max-width: none; gap: 4px 5px; }
+  .board-row .gl { font-size: 0.68rem; }
+
+  /* deck: all 52 cards on screen, 4 rows of 13 */
+  #panel-deck .fracs { display: none; }
+  .deck { padding: 8px; gap: 5px; }
+  .legend-row { font-size: 0.75rem; gap: 2px 14px; }
+  .legend-row span:nth-child(3) { display: none; }
+  .suit-row { grid-template-columns: minmax(0, 1fr); }
+  .suit-glyph { display: none; }
+  .ranks { grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 2px; }
+  .pick { min-height: 46px; border-radius: 6px; padding: 2px 0; }
+  .pick .r { font-size: 0.82rem; letter-spacing: -0.06em; }
+  .pick .g { font-size: 0.8rem; }
+  .pick.hole::after, .pick.board::after { top: 2px; right: 2px; width: 6px; height: 6px; border-width: 1px; }
+
+  /* bet tab */
+  .pot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .field { padding: 10px; gap: 8px; }
+  .money { min-height: 48px; padding: 0 10px; }
+  .money input { font-size: 1.4rem; }
+  .fracs-m { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .fracs-m .btn { padding: 0; }
+  #odds { font-size: 0.95rem; color: var(--muted); }
+
+  /* odds tab */
+  .verdict, .gauge-card { padding: 14px; }
+  .tiles { gap: 8px; }
+  #verdict-box .v-tag { display: none; }
+  #verdict-box .v-sub { color: var(--fg); font-size: 1.05rem; margin-top: 0; }
+  .gauge-card .gauge-wrap { order: -4; }
+  .gauge-card .eq-read    { order: -3; }
+  .gauge-card .split      { order: -2; }
+  .gauge-card .legend     { order: -1; }
+  .gauge-card .tiles      { order: 1; }
+}
+
+@media (max-width: 640px) and (max-height: 720px) {
+  .panel { padding: 10px; gap: 8px; }
+  .hand-meta { display: none; }
+  .legend-row { display: none; }
+  .pick { min-height: 36px; }
+  .wrap { gap: 8px; }
+  .hole-row { grid-template-columns: 56px 56px minmax(0, 1fr); }
+  .board-row { grid-template-columns: repeat(5, 56px); justify-content: space-between; }
+  #panel-deck .ph-text { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .deck { padding: 6px; gap: 4px; }
+  .opp-help { display: none; }
+}
