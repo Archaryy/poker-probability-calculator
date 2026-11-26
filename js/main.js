@@ -6,7 +6,7 @@ import { simulate, RUNS } from './simulate.js';
 import { requiredEquity, money, signed, pct } from './odds.js';
 import './tour.js';
 import { phone, setTab } from './tabs.js'
-import { adviseBet  } from '../advice.js';
+import { adviseBet  } from './advice.js';
 // Build the deck: one row per suit with a big symbol on the left, then 13 small cards.
 const deckDiv = document.getElementById('deck');
 for (let suit = 0; suit < 4; suit++) {
