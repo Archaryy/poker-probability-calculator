@@ -6,6 +6,7 @@ import { simulate, RUNS } from './simulate.js';
 import { requiredEquity, money, signed, pct } from './odds.js';
 import './tour.js';
 import { phone, setTab } from './tabs.js'
+import { adviseBet  } from '../advice.js';
 // Build the deck: one row per suit with a big symbol on the left, then 13 small cards.
 const deckDiv = document.getElementById('deck');
 for (let suit = 0; suit < 4; suit++) {
@@ -224,6 +225,24 @@ function drawVerdict(view) {
   vEv.textContent = ev;
 }
 updaters.push(drawVerdict);
+
+// ---- updater: how much to bet (an estimate) ----
+const adviceBox = $('advice');
+const adviceHead = $('advice-head');
+const adviceOpts = $('advice-opts');
+function drawAdvice(view) {
+  const advice = view.result
+    ? adviseBet({ equity: view.result.equity, opps: settings.opps, pot: view.pot, bet: view.bet })
+    : null;
+  if (!advice) { adviceBox.hidden = true; return; }
+  adviceBox.hidden = false;
+  adviceHead.textContent = advice.headline;
+  adviceOpts.innerHTML = advice.options.map((o, i) =>
+    '<div class="advice-opt"' + (i === advice.pick ? ' data-pick="true"' : '') + '>' +
+    '<span>' + o.label + '</span><b>' + money(o.amount) + '</b><span>needs ' + Math.round(o.theyNeed * 100) + '%</span></div>'
+  ).join('');
+}
+updaters.push(drawAdvice);
 
 // ---- the opponent buttons ----
 const segmentPainters = [];
@@ -580,7 +599,6 @@ $('btn-reset').addEventListener('click', () => {
   syncMoney();
   render();
 });
-window.addEventListener('load', () => loadHand(EXAMPLES[0]));
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));

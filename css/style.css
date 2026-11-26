@@ -586,3 +586,16 @@ button, .slot, .pick { -webkit-user-select: none; user-select: none; }
 .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button,
 .pct input::-webkit-outer-spin-button, .pct input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .pct span { padding-right: 10px; color: var(--muted); font-weight: 600; }
+
+/* bet suggestion inside the decision card */
+.advice { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+.advice[hidden] { display: none; }
+.advice-head { font-weight: 700; font-size: 1.05rem; }
+.advice-opts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.advice-opts:empty { display: none; }
+.advice-opt { display: grid; gap: 2px; justify-items: center; padding: 8px 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--well); text-align: center; }
+.advice-opt b { font-size: 1rem; }
+.advice-opt span { font-size: 0.72rem; color: var(--muted); }
+.advice-opt[data-pick="true"] { border-color: var(--em-edge); background: var(--panel-hi); }
+.advice-opt[data-pick="true"] b { color: var(--em); }
+.advice-note { color: var(--muted); font-size: 0.85rem; line-height: 1.4; }

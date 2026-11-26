@@ -1,10 +1,10 @@
-const CACHE = 'cardcraft-v5';
+const CACHE = 'cardcraft-v6';
 const FILES = [
   './', 'index.html', 'css/style.css', 'manifest.webmanifest',
   'js/main.js', 'js/cards.js', 'js/odds.js', 'js/evaluator.js',
-  'js/ranges.js', 'js/simulate.js', 'js/dom.js', 'js/tour.js', 'js/tabs.js',
+  'js/ranges.js', 'js/simulate.js', 'js/dom.js', 'js/tour.js', 'js/tabs.js', 'js/advice.js',
   'js/worker.js',
-  'assets/icons/icon-192.svg', 'assets/icons/icon-512.svg', 
+  'assets/icons/icon-192.svg', 'assets/icons/icon-512.svg',
   'assets/icons/apple-touch-icon.svg'
 ];
 
