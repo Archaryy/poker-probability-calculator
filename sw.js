@@ -1,4 +1,4 @@
-const CACHE = 'cardcraft-v4';
+const CACHE = 'cardcraft-v5';
 const FILES = [
   './', 'index.html', 'css/style.css', 'manifest.webmanifest',
   'js/main.js', 'js/cards.js', 'js/odds.js', 'js/evaluator.js',

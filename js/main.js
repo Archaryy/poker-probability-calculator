@@ -241,8 +241,23 @@ function wireSegment(id, key) {
   }));
   paint();
 }
-wireSegment('seg-opps', 'opps');
-
+// opponents: a - / number / + stepper, 1 to 9 (a full table of 10 has 9 opponents)
+const oppsInput = $('opps-n');
+const rangeInput = $('range-n');
+function clampInt(value, low, high, fallback) {
+  const n = Math.round(Number(value));
+  return Number.isFinite(n) ? Math.min(high, Math.max(low, n)) : fallback;
+}
+function setOpps(n) { settings.opps = clampInt(n, 1, 9, settings.opps); paintSegments(); calculate(); }
+function setRangePct(p) { settings.range = clampInt(p, 5, 100, Math.round(settings.range * 100)) / 100; paintSegments(); calculate(); }
+segmentPainters.push(() => {
+  if (document.activeElement !== oppsInput) oppsInput.value = settings.opps;
+  if (document.activeElement !== rangeInput) rangeInput.value = Math.round(settings.range * 100);
+});
+$('opps-minus').addEventListener('click', () => setOpps(settings.opps - 1));
+$('opps-plus').addEventListener('click', () => setOpps(settings.opps + 1));
+oppsInput.addEventListener('change', () => setOpps(oppsInput.value));
+rangeInput.addEventListener('change', () => setRangePct(rangeInput.value));
 // The gauge is an SVG half circle. polar() turns "how far along" (0 to 1) into x and y.
 function polar(p, radius) {
   return [120 - radius * Math.cos(Math.PI * p), 118 - radius * Math.sin(Math.PI * p)];

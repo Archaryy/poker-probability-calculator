@@ -13,45 +13,48 @@ function chen(high, low, suited) {
   }
   return Math.ceil(score);
 }
-
 // There are 169 kinds of starting hand and 1,326 actual combinations of two cards.
-const RANGE_STEPS = [1, 0.5, 0.25, 0.1];
 export const CLASS_PCT = {};       // "how good is this hand" as a percentage, for AKs, 72o and so on
-export const RANGE_COMBOS = {};    // for each range, the list of allowed two-card hands
-(function buildRanges() {
-  const kinds = [];
+const KINDS = [];                  // all 169 kinds, best first
+(function buildKinds() {
   for (let high = 12; high >= 0; high--) {
     for (let low = high; low >= 0; low--) {
-      if (high === low) kinds.push({ high, low, suited: 0, count: 6 });
+      if (high === low) KINDS.push({ high, low, suited: 0, count: 6 });
       else {
-        kinds.push({ high, low, suited: 1, count: 4 });
-        kinds.push({ high, low, suited: 0, count: 12 });
+        KINDS.push({ high, low, suited: 1, count: 4 });
+        KINDS.push({ high, low, suited: 0, count: 12 });
       }
     }
   }
-  kinds.forEach(k => { k.score = chen(k.high, k.low, k.suited) * 1000 + k.high * 20 + k.low + (k.suited ? 0.5 : 0); });
-  kinds.sort((a, b) => b.score - a.score);                 // best hands first
+  KINDS.forEach(k => { k.score = chen(k.high, k.low, k.suited) * 1000 + k.high * 20 + k.low + (k.suited ? 0.5 : 0); });
+  KINDS.sort((a, b) => b.score - a.score);                 // best hands first
 
   let running = 0;
-  kinds.forEach(k => {
+  KINDS.forEach(k => {
     running += k.count;
     k.cumulative = running;
     CLASS_PCT[k.high * 26 + k.low * 2 + k.suited] = running / 1326 * 100;
   });
-
-  for (const fraction of RANGE_STEPS) {
-    const limit = Math.max(fraction * 1326, kinds[0].count);
-    const allowed = new Set();
-    kinds.forEach(k => { if (k.cumulative <= limit || k === kinds[0]) allowed.add(k.high * 26 + k.low * 2 + k.suited); });
-    const list = [];
-    for (let a = 0; a < 52; a++) {
-      for (let b = a + 1; b < 52; b++) {
-        const ra = a >> 2, rb = b >> 2;
-        const high = Math.max(ra, rb), low = Math.min(ra, rb);
-        const suited = (a & 3) === (b & 3) ? 1 : 0;
-        if (allowed.has(high * 26 + low * 2 + suited)) list.push(a, b);
-      }
-    }
-    RANGE_COMBOS[fraction] = list;
-  }
 })();
+
+// The allowed two-card hands for "the best X of all hands", X from 0.05 (5%) to 1 (any hand).
+// Each value is worked out once and then remembered.
+const rangeCache = {};
+export function getRange(fraction) {
+  const f = Math.min(1, Math.max(0.05, Math.round(fraction * 100) / 100));
+  if (rangeCache[f]) return rangeCache[f];
+  const limit = Math.max(f * 1326, KINDS[0].count);
+  const allowed = new Set();
+  KINDS.forEach(k => { if (k.cumulative <= limit || k === KINDS[0]) allowed.add(k.high * 26 + k.low * 2 + k.suited); });
+  const list = [];
+  for (let a = 0; a < 52; a++) {
+    for (let b = a + 1; b < 52; b++) {
+      const ra = a >> 2, rb = b >> 2;
+      const high = Math.max(ra, rb), low = Math.min(ra, rb);
+      const suited = (a & 3) === (b & 3) ? 1 : 0;
+      if (allowed.has(high * 26 + low * 2 + suited)) list.push(a, b);
+    }
+  }
+  rangeCache[f] = list;
+  return list;
+}

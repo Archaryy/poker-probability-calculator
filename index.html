@@ -188,24 +188,27 @@
           </div>
         </div>
 
-        <div class="opp-set" id="opp-set">
-          <div class="opp-row"><span class="lbl">Opponents</span>
-            <div class="seg" role="group" aria-label="Number of opponents" id="seg-opps">
-              <button type="button" data-v="1" aria-pressed="true">1</button>
-              <button type="button" data-v="2" aria-pressed="false">2</button>
-              <button type="button" data-v="3" aria-pressed="false">3</button>
-              <button type="button" data-v="5" aria-pressed="false">5</button>
+                <div class="opp-set" id="opp-set">
+          <div class="opp-row"><label class="lbl" for="opps-n">Opponents</label>
+            <div class="stepper" role="group" aria-label="Number of opponents">
+              <button type="button" id="opps-minus" aria-label="One fewer opponent">&minus;</button>
+              <input id="opps-n" type="number" inputmode="numeric" min="1" max="9" value="1">
+              <button type="button" id="opps-plus" aria-label="One more opponent">+</button>
             </div>
+          </div>
           <div class="opp-row"><span class="lbl">Their hands</span>
             <div class="seg" role="group" aria-label="Opponent hand range" id="seg-range">
               <button type="button" data-v="1" aria-pressed="true">Any</button>
               <button type="button" data-v="0.5" aria-pressed="false">Top 50%</button>
               <button type="button" data-v="0.25" aria-pressed="false">Top 25%</button>
               <button type="button" data-v="0.1" aria-pressed="false">Top 10%</button>
+              <button type="button" data-v="0.05" aria-pressed="false">Top 5%</button>
             </div>
           </div>
-          <p class="opp-help">Real opponents are not random. When someone bets big, try Top 25% or Top 10%.</p>
+          <div class="opp-row"><label class="lbl" for="range-n">Or type your own: top</label>
+            <div class="pct"><input id="range-n" type="number" inputmode="numeric" min="5" max="100" value="100"><span>%</span></div>
           </div>
+          <p class="opp-help">6 players at the table means 5 opponents (up to 9). Real opponents are not random: when someone bets big, try Top 25% or Top 10%. Many opponents all holding very strong hands almost never happens, so treat that result as optimistic for you.</p>
         </div>
         
         <details class="learn" id="why" open>
